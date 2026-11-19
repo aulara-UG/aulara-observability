@@ -45,6 +45,6 @@ Source: [github.com/aulara-UG/aulara-observability](https://github.com/aulara-UG
 
 - SereneDB volume `/var/lib/serenedb`, Grafana volume `/var/lib/grafana`
 - Private networking between collector, SereneDB, and Grafana
-- **Zero-config secrets:** passwords use Railway `${{secret()}}`; Grafana/collector wire themselves via `${{serenedb.*}}` and `${{RAILWAY_PUBLIC_DOMAIN}}`
-- **You only customize** `OTEL_TENANTS` (add `user:password` pairs). A demo tenant is pre-generated.
+- **Auto-wired:** Grafana/collector connect to SereneDB via `${{serenedb.*}}`; Grafana URL via `${{RAILWAY_PUBLIC_DOMAIN}}`
+- **You set once at deploy:** SereneDB passwords (`POSTGRES_PASSWORD`, ingest/Grafana DB roles), Grafana admin password, and `OTEL_TENANTS` (`user:password` pairs)
 - Grafana footprint knobs are baked into the image — not prompted at deploy
