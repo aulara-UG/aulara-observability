@@ -36,7 +36,7 @@ for k in GF_ALERTING_ENABLED GF_ANALYTICS_CHECK_FOR_PLUGIN_UPDATES GF_ANALYTICS_
   GF_LIVE_MAX_CONNECTIONS GF_LOG_LEVEL GF_NEWS_NEWS_FEED_ENABLED GF_PROFILE_ENABLED \
   GF_SERVER_ENABLE_GZIP GF_SERVER_HTTP_PORT GF_UNIFIED_ALERTING_ENABLED GF_USERS_ALLOW_SIGN_UP \
   GOGC GOMEMLIMIT; do
-  railway variable delete "$k" --service grafana --environment "$ENV" --project "$PROJECT_ID" --json >/dev/null 2>&1 || true
+  railway variable delete "$k" --service grafana --environment "$ENV" --project "$PROJECT_ID" >/dev/null 2>&1 || true
 done
 
 railway variable set --service otel-collector --environment "$ENV" --project "$PROJECT_ID" --skip-deploys \
