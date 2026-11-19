@@ -1,0 +1,138 @@
+{
+  "annotations": { "list": [] },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [],
+  "panels": [
+    {
+      "type": "stat",
+      "id": 1,
+      "title": "Total log rows",
+      "gridPos": { "h": 4, "w": 6, "x": 0, "y": 0 },
+      "datasource": { "type": "postgres", "uid": "serenedb" },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "postgres", "uid": "serenedb" },
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT count(*) AS \"Total logs\" FROM otel_logs"
+        }
+      ],
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "value", "graphMode": "none" }
+    },
+    {
+      "type": "stat",
+      "id": 2,
+      "title": "Total spans",
+      "gridPos": { "h": 4, "w": 6, "x": 6, "y": 0 },
+      "datasource": { "type": "postgres", "uid": "serenedb" },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "postgres", "uid": "serenedb" },
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT count(*) AS \"Total spans\" FROM otel_traces"
+        }
+      ],
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "value", "graphMode": "none" }
+    },
+    {
+      "type": "stat",
+      "id": 3,
+      "title": "Gauge metric points",
+      "gridPos": { "h": 4, "w": 6, "x": 12, "y": 0 },
+      "datasource": { "type": "postgres", "uid": "serenedb" },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "postgres", "uid": "serenedb" },
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT count(*) AS \"Gauge points\" FROM otel_metrics_gauge"
+        }
+      ],
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "value", "graphMode": "none" }
+    },
+    {
+      "type": "stat",
+      "id": 4,
+      "title": "Distinct tenants",
+      "gridPos": { "h": 4, "w": 6, "x": 18, "y": 0 },
+      "datasource": { "type": "postgres", "uid": "serenedb" },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "postgres", "uid": "serenedb" },
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT count(DISTINCT resource_attributes->>'tenant.id') AS \"Tenants\" FROM otel_logs"
+        }
+      ],
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "value", "graphMode": "none" }
+    },
+    {
+      "type": "table",
+      "id": 5,
+      "title": "Recent logs (this is the panel to look at first)",
+      "gridPos": { "h": 12, "w": 24, "x": 0, "y": 4 },
+      "datasource": { "type": "postgres", "uid": "serenedb" },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "postgres", "uid": "serenedb" },
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT \"timestamp\", service_name, resource_attributes->>'tenant.id' AS tenant, severity_text, body FROM otel_logs ORDER BY \"timestamp\" DESC LIMIT 100"
+        }
+      ],
+      "options": { "showHeader": true, "cellHeight": "sm" }
+    },
+    {
+      "type": "table",
+      "id": 6,
+      "title": "Logs by tenant + service",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 16 },
+      "datasource": { "type": "postgres", "uid": "serenedb" },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "postgres", "uid": "serenedb" },
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT coalesce(resource_attributes->>'tenant.id','(none)') AS tenant, service_name, count(*) AS log_count FROM otel_logs GROUP BY 1, 2 ORDER BY log_count DESC"
+        }
+      ],
+      "options": { "showHeader": true }
+    },
+    {
+      "type": "table",
+      "id": 7,
+      "title": "Recent traces",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 16 },
+      "datasource": { "type": "postgres", "uid": "serenedb" },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "postgres", "uid": "serenedb" },
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT \"timestamp\", service_name, resource_attributes->>'tenant.id' AS tenant, span_name, status_code, duration_ns, trace_id FROM otel_traces ORDER BY \"timestamp\" DESC LIMIT 100"
+        }
+      ],
+      "options": { "showHeader": true }
+    }
+  ],
+  "refresh": "10s",
+  "schemaVersion": 39,
+  "tags": ["serenedb", "opentelemetry", "observability"],
+  "templating": { "list": [] },
+  "time": { "from": "now-7d", "to": "now" },
+  "timezone": "browser",
+  "title": "SereneDB Observability Overview",
+  "uid": "serenedb-observability-overview",
+  "version": 2
+}

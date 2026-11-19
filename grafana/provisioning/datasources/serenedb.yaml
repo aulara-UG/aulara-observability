@@ -1,0 +1,19 @@
+apiVersion: 1
+
+datasources:
+  - name: SereneDB
+    uid: serenedb
+    type: postgres
+    access: proxy
+    url: ${SERENEDB_HOST}:${SERENEDB_PORT}
+    user: ${GRAFANA_DB_USER}
+    database: postgres
+    isDefault: true
+    editable: true
+    jsonData:
+      database: postgres
+      sslmode: disable
+      postgresVersion: 1600
+      timescaledb: false
+    secureJsonData:
+      password: ${GRAFANA_DB_PASSWORD}

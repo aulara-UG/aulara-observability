@@ -1,0 +1,82 @@
+extensions:
+  health_check:
+    endpoint: 0.0.0.0:13133
+  # Inbound multi-tenant auth: one Basic Auth username per customer.
+  basicauth/server:
+    htpasswd:
+      file: ${env:OTEL_HTPASSWD_FILE}
+  # Outbound auth to SereneDB OTLP.
+  basicauth/serenedb:
+    client_auth:
+      username: ${env:OTEL_INGEST_USER}
+      password: ${env:OTEL_INGEST_PASSWORD}
+
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+        auth:
+          authenticator: basicauth/server
+      http:
+        endpoint: 0.0.0.0:4318
+        auth:
+          authenticator: basicauth/server
+
+processors:
+  memory_limiter:
+    check_interval: 1s
+    limit_mib: 400
+    spike_limit_mib: 100
+  # Stamp resource.tenant.id from the authenticated Basic Auth username.
+  resource/tenant:
+    attributes:
+      - key: tenant.id
+        from_context: auth.username
+        action: upsert
+  resource/env:
+    attributes:
+      - key: deployment.environment
+        value: ${env:RAILWAY_ENVIRONMENT_NAME}
+        action: upsert
+  batch:
+    send_batch_size: 8192
+    send_batch_max_size: 16384
+    timeout: 5s
+
+exporters:
+  otlp_http/serenedb:
+    endpoint: ${env:SERENEDB_OTLP_ENDPOINT}
+    auth:
+      authenticator: basicauth/serenedb
+    compression: gzip
+    retry_on_failure:
+      enabled: true
+      initial_interval: 1s
+      max_interval: 30s
+      max_elapsed_time: 300s
+    sending_queue:
+      enabled: true
+      num_consumers: 4
+      queue_size: 1000
+  debug:
+    verbosity: basic
+
+service:
+  extensions: [health_check, basicauth/server, basicauth/serenedb]
+  pipelines:
+    logs:
+      receivers: [otlp]
+      processors: [memory_limiter, resource/tenant, resource/env, batch]
+      exporters: [otlp_http/serenedb]
+    traces:
+      receivers: [otlp]
+      processors: [memory_limiter, resource/tenant, resource/env, batch]
+      exporters: [otlp_http/serenedb]
+    metrics:
+      receivers: [otlp]
+      processors: [memory_limiter, resource/tenant, resource/env, batch]
+      exporters: [otlp_http/serenedb]
+  telemetry:
+    logs:
+      level: info
