@@ -1,70 +1,53 @@
-# Aulara Observability Stack
+# Deploy and Host Aulara Observability on Railway
 
-**SereneDB + OpenTelemetry Collector + Grafana** — a production-ready observability backend on Railway.
+**Aulara Observability** is a general-purpose observability stack: **SereneDB** for storage, **OpenTelemetry Collector** for ingest, and **Grafana** for dashboards.
 
-Ingest metrics, logs, and traces over OTLP. Store them in [SereneDB](https://serenedb.com). Explore everything in Grafana.
-
-## Architecture
+Built by [Aulara](https://aulara.de).
 
 ```text
-Your apps / agents
-       │  OTLP (gRPC :4317 / HTTP :4318)
-       ▼
-┌──────────────────┐
-│  otel-collector  │  multi-tenant Basic Auth → tenant.id
-└────────┬─────────┘
-         │  OTLP/HTTP + Basic Auth (private network)
-         ▼
-┌──────────────────┐         SQL (PG wire :7890)
-│    serenedb      │ ◄──────────────────────── Grafana
-└──────────────────┘
+Apps / agents  --OTLP-->  otel-collector  --OTLP/HTTP-->  serenedb  <--SQL--  grafana
 ```
 
-## What you get
+## About Hosting Aulara Observability
+
+This template provisions three always-on services (plus an optional soft-tune one-shot):
 
 | Service | Role |
 |---------|------|
 | **serenedb** | OTLP ingest + PostgreSQL-wire SQL store (volume-backed) |
-| **otel-collector** | Public/private OTLP gateway, auth, batching, routing |
-| **grafana** | Dashboards & Explore against SereneDB |
+| **otel-collector** | OTLP gateway with Basic Auth multi-tenancy (`tenant.id`) |
+| **grafana** | Explore & dashboards against SereneDB |
+| **serenedb-soft-tune** | Optional one-shot soft memory tune for SereneDB |
 
-## Quick start after deploy
+After deploy, open the Grafana public URL and send OTLP to the collector (private network or public domain) with Basic Auth.
 
-1. Open the **grafana** service URL and log in with `GF_SECURITY_ADMIN_USER` / `GF_SECURITY_ADMIN_PASSWORD`.
-2. Point apps at the collector:
+Source: [github.com/aulara-UG/aulara-observability](https://github.com/aulara-UG/aulara-observability)
 
-```bash
-OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf
-OTEL_EXPORTER_OTLP_ENDPOINT=https://<otel-collector-public-domain>
-OTEL_EXPORTER_OTLP_HEADERS=Authorization=Basic%20$(printf '%s' 'demo:changeme' | base64)
-```
+## Why Deploy Aulara Observability
 
-3. Set tenants on the collector via `OTEL_TENANTS` (comma-separated `user:password`). Each username becomes `resource.attributes["tenant.id"]`.
+- OTel-native metrics, logs, and traces without running Loki / Tempo / Mimir separately
+- Multi-tenant ingest via `OTEL_TENANTS` (username → `tenant.id`)
+- SQL access over Postgres wire for Grafana and custom tools
+- Soft SereneDB memory defaults for lower Railway RAM cost
+- Maintained as a reusable base for Aulara customer observability offerings
 
-## Query examples
+## Common Use Cases
 
-```sql
--- Logs for one tenant
-SELECT timestamp, service_name, body
-FROM otel_logs
-WHERE resource_attributes->>'tenant.id' = 'demo'
-ORDER BY timestamp DESC
-LIMIT 100;
+- Central observability backend for apps on Railway
+- Ingest from external Linux hosts / Kubernetes via public OTLP + Basic Auth
+- Multi-tenant SaaS telemetry (one stack, many `tenant.id` values)
+- Replace or complement Prometheus/Loki/Tempo for lighter startups
+- Demo / staging environment for OpenTelemetry pipelines
 
--- Host CPU
-SELECT timestamp AS time, attributes->>'state' AS metric, value
-FROM otel_metrics_gauge
-WHERE metric_name = 'system.cpu.utilization'
-  AND resource_attributes->>'tenant.id' = 'demo'
-ORDER BY 1;
-```
+## Dependencies for Aulara Observability Hosting
 
-## Soft memory defaults
+- Railway account (Hobby or Pro recommended for volumes + public domains)
+- OTLP-capable clients or agents (OpenTelemetry SDK, otelcol-contrib, etc.)
+- Optional: DNS / public domain on `otel-collector` and `grafana`
 
-SereneDB is tuned for a small footprint (`cpu_threads` / `io_threads` = 2). Re-run soft-tune after major SereneDB redeploys if you use the optional tune job.
+### Deployment Dependencies
 
-## Built by Aulara
-
-Template maintained by **Aulara** for teams that want OTel-native observability without running Loki/Tempo/Mimir separately.
-
-Website: [aulara.de](https://aulara.de)
+- **SereneDB** volume at `/var/lib/serenedb`
+- **Grafana** volume at `/var/lib/grafana`
+- Private networking between `otel-collector` ↔ `serenedb` ↔ `grafana`
+- Service variables: `POSTGRES_PASSWORD`, `OTEL_TENANTS`, `GF_SECURITY_ADMIN_USER`, `GF_SECURITY_ADMIN_PASSWORD`, SereneDB/Grafana DB role passwords (see `.env.example` in the repo)
