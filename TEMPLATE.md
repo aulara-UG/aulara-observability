@@ -1,6 +1,6 @@
-# Deploy and Host Aulara Observability on Railway
+# Deploy and Host Grafana OpenTelemetry Stack by Aulara on Railway
 
-**Aulara Observability** is a general-purpose observability stack: **SereneDB** for storage, **OpenTelemetry Collector** for ingest, and **Grafana** for dashboards.
+**Aulara**’s **Grafana OpenTelemetry** stack: **OpenTelemetry Collector** + **SereneDB** + **Grafana** — a lightweight **LGTM**-style alternative (without Loki/Tempo/Mimir).
 
 Built by [Aulara](https://aulara.de).
 
@@ -8,46 +8,43 @@ Built by [Aulara](https://aulara.de).
 Apps / agents  --OTLP-->  otel-collector  --OTLP/HTTP-->  serenedb  <--SQL--  grafana
 ```
 
-## About Hosting Aulara Observability
-
-This template provisions three always-on services (plus an optional soft-tune one-shot):
+## About Hosting Grafana OpenTelemetry Stack by Aulara
 
 | Service | Role |
 |---------|------|
 | **serenedb** | OTLP ingest + PostgreSQL-wire SQL store (volume-backed) |
-| **otel-collector** | OTLP gateway with Basic Auth multi-tenancy (`tenant.id`) |
-| **grafana** | Explore & dashboards against SereneDB |
-| **serenedb-soft-tune** | Optional one-shot soft memory tune for SereneDB |
-
-After deploy, open the Grafana public URL and send OTLP to the collector (private network or public domain) with Basic Auth.
+| **otel-collector** | OpenTelemetry Collector / OTLP gateway, Basic Auth multi-tenancy |
+| **grafana** | Grafana Explore & dashboards |
+| **serenedb-soft-tune** | Optional soft memory tune for SereneDB |
 
 Source: [github.com/aulara-UG/aulara-observability](https://github.com/aulara-UG/aulara-observability)
 
-## Why Deploy Aulara Observability
+## Why Deploy Grafana OpenTelemetry Stack by Aulara
 
-- OTel-native metrics, logs, and traces without running Loki / Tempo / Mimir separately
-- Multi-tenant ingest via `OTEL_TENANTS` (username → `tenant.id`)
-- SQL access over Postgres wire for Grafana and custom tools
-- Soft SereneDB memory defaults for lower Railway RAM cost
-- Maintained as a reusable base for Aulara customer observability offerings
+- **Grafana** + **OpenTelemetry** metrics, logs, and traces in one Railway deploy
+- LGTM-like observability without operating Loki / Tempo / Mimir
+- Multi-tenant OTLP via `OTEL_TENANTS` → `tenant.id`
+- SQL over Postgres wire for Grafana and tooling
+- Soft SereneDB memory defaults for lower Railway cost
 
 ## Common Use Cases
 
-- Central observability backend for apps on Railway
-- Ingest from external Linux hosts / Kubernetes via public OTLP + Basic Auth
-- Multi-tenant SaaS telemetry (one stack, many `tenant.id` values)
-- Replace or complement Prometheus/Loki/Tempo for lighter startups
-- Demo / staging environment for OpenTelemetry pipelines
+- Host **Grafana** and an **OpenTelemetry Collector** backend on Railway
+- Replace or simplify classic **LGTM** stacks for startups
+- Public OTLP ingest from Linux / Kubernetes agents
+- Multi-tenant SaaS telemetry
+- OTLP demos and staging environments
 
-## Dependencies for Aulara Observability Hosting
+## Dependencies for Grafana OpenTelemetry Stack by Aulara Hosting
 
-- Railway account (Hobby or Pro recommended for volumes + public domains)
-- OTLP-capable clients or agents (OpenTelemetry SDK, otelcol-contrib, etc.)
-- Optional: DNS / public domain on `otel-collector` and `grafana`
+- Railway account (Hobby or Pro recommended)
+- OpenTelemetry / OTLP clients (SDK, otelcol-contrib, …)
+- Optional public domains for Grafana and the collector
 
 ### Deployment Dependencies
 
-- **SereneDB** volume at `/var/lib/serenedb`
-- **Grafana** volume at `/var/lib/grafana`
-- Private networking between `otel-collector` ↔ `serenedb` ↔ `grafana`
-- Service variables: `POSTGRES_PASSWORD`, `OTEL_TENANTS`, `GF_SECURITY_ADMIN_USER`, `GF_SECURITY_ADMIN_PASSWORD`, SereneDB/Grafana DB role passwords (see `.env.example` in the repo)
+- SereneDB volume `/var/lib/serenedb`, Grafana volume `/var/lib/grafana`
+- Private networking between collector, SereneDB, and Grafana
+- **Zero-config secrets:** passwords use Railway `${{secret()}}`; Grafana/collector wire themselves via `${{serenedb.*}}` and `${{RAILWAY_PUBLIC_DOMAIN}}`
+- **You only customize** `OTEL_TENANTS` (add `user:password` pairs). A demo tenant is pre-generated.
+- Grafana footprint knobs are baked into the image — not prompted at deploy

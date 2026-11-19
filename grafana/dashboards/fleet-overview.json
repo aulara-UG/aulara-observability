@@ -1,0 +1,348 @@
+{
+  "annotations": { "list": [] },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [
+    {
+      "asDropdown": false,
+      "icon": "dashboard",
+      "includeVars": true,
+      "keepTime": true,
+      "tags": [],
+      "targetBlank": false,
+      "title": "Server detail",
+      "tooltip": "Open selected server",
+      "type": "link",
+      "url": "/d/cyto-server-detail/server-detail?var-host=${host}"
+    }
+  ],
+  "panels": [
+    {
+      "type": "stat",
+      "id": 1,
+      "title": "Servers seen",
+      "description": "Distinct host.name in the selected time range",
+      "gridPos": { "h": 4, "w": 4, "x": 0, "y": 0 },
+      "datasource": { "type": "grafana-postgresql-datasource", "uid": "serenedb" },
+      "fieldConfig": {
+        "defaults": { "thresholds": { "mode": "absolute", "steps": [{ "color": "blue", "value": null }] } },
+        "overrides": []
+      },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "value", "graphMode": "none", "textMode": "value_and_name" },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "grafana-postgresql-datasource", "uid": "serenedb" },
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT count(DISTINCT host) AS \"Servers\" FROM (\n  SELECT resource_attributes->>'host.name' AS host FROM otel_metrics_gauge WHERE $__timeFilter(\"timestamp\") AND resource_attributes->>'host.name' IS NOT NULL\n  UNION\n  SELECT resource_attributes->>'host.name' FROM otel_metrics_sum WHERE $__timeFilter(\"timestamp\") AND resource_attributes->>'host.name' IS NOT NULL\n  UNION\n  SELECT resource_attributes->>'host.name' FROM otel_logs WHERE $__timeFilter(\"timestamp\") AND resource_attributes->>'host.name' IS NOT NULL\n) s\nWHERE host IN (${host:sqlstring})"
+        }
+      ]
+    },
+    {
+      "type": "stat",
+      "id": 2,
+      "title": "Servers up (5m)",
+      "description": "Hosts with any metric sample in the last 5 minutes",
+      "gridPos": { "h": 4, "w": 4, "x": 4, "y": 0 },
+      "datasource": { "type": "grafana-postgresql-datasource", "uid": "serenedb" },
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "red", "value": null },
+              { "color": "green", "value": 1 }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "background", "graphMode": "none" },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "grafana-postgresql-datasource", "uid": "serenedb" },
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT count(DISTINCT resource_attributes->>'host.name') AS \"Up\"\nFROM otel_metrics_gauge\nWHERE \"timestamp\" > now() - interval '5 minutes'\n  AND resource_attributes->>'host.name' IS NOT NULL\n  AND resource_attributes->>'host.name' IN (${host:sqlstring})"
+        }
+      ]
+    },
+    {
+      "type": "stat",
+      "id": 3,
+      "title": "Error log lines",
+      "description": "Log lines in range (print-via-email *.error stream)",
+      "gridPos": { "h": 4, "w": 4, "x": 8, "y": 0 },
+      "datasource": { "type": "grafana-postgresql-datasource", "uid": "serenedb" },
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 1 },
+              { "color": "red", "value": 50 }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "value", "graphMode": "area" },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "grafana-postgresql-datasource", "uid": "serenedb" },
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT count(*) AS \"Errors\"\nFROM otel_logs\nWHERE $__timeFilter(\"timestamp\")\n  AND resource_attributes->>'host.name' IN (${host:sqlstring})"
+        }
+      ]
+    },
+    {
+      "type": "stat",
+      "id": 4,
+      "title": "Avg process CPU %",
+      "gridPos": { "h": 4, "w": 4, "x": 12, "y": 0 },
+      "datasource": { "type": "grafana-postgresql-datasource", "uid": "serenedb" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 0.5 },
+              { "color": "red", "value": 0.8 }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "value", "graphMode": "none" },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "grafana-postgresql-datasource", "uid": "serenedb" },
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT avg(value) AS \"CPU\"\nFROM otel_metrics_gauge\nWHERE metric_name = 'process.cpu.utilization'\n  AND $__timeFilter(\"timestamp\")\n  AND resource_attributes->>'host.name' IN (${host:sqlstring})"
+        }
+      ]
+    },
+    {
+      "type": "stat",
+      "id": 5,
+      "title": "Avg process memory %",
+      "gridPos": { "h": 4, "w": 4, "x": 16, "y": 0 },
+      "datasource": { "type": "grafana-postgresql-datasource", "uid": "serenedb" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 0.6 },
+              { "color": "red", "value": 0.85 }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "value", "graphMode": "none" },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "grafana-postgresql-datasource", "uid": "serenedb" },
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT avg(value) AS \"Memory\"\nFROM otel_metrics_gauge\nWHERE metric_name = 'process.memory.utilization'\n  AND $__timeFilter(\"timestamp\")\n  AND resource_attributes->>'host.name' IN (${host:sqlstring})"
+        }
+      ]
+    },
+    {
+      "type": "stat",
+      "id": 6,
+      "title": "Services",
+      "gridPos": { "h": 4, "w": 4, "x": 20, "y": 0 },
+      "datasource": { "type": "grafana-postgresql-datasource", "uid": "serenedb" },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "value", "graphMode": "none" },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "grafana-postgresql-datasource", "uid": "serenedb" },
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT count(DISTINCT coalesce(resource_attributes->>'service.name', service_name)) AS \"Services\"\nFROM (\n  SELECT service_name, resource_attributes FROM otel_metrics_gauge WHERE $__timeFilter(\"timestamp\")\n  UNION ALL\n  SELECT service_name, resource_attributes FROM otel_logs WHERE $__timeFilter(\"timestamp\")\n) s\nWHERE resource_attributes->>'host.name' IN (${host:sqlstring})"
+        }
+      ]
+    },
+    {
+      "type": "table",
+      "id": 10,
+      "title": "Server status",
+      "description": "Click a host, then open Server detail from the top link (set Host filter)",
+      "gridPos": { "h": 9, "w": 24, "x": 0, "y": 4 },
+      "datasource": { "type": "grafana-postgresql-datasource", "uid": "serenedb" },
+      "options": { "showHeader": true, "cellHeight": "sm", "footer": { "show": false } },
+      "fieldConfig": {
+        "defaults": { "custom": { "align": "auto", "filterable": true } },
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "status" },
+            "properties": [
+              {
+                "id": "mappings",
+                "value": [
+                  { "type": "value", "options": { "UP": { "color": "green", "text": "UP" }, "DOWN": { "color": "red", "text": "DOWN" } } }
+                ]
+              },
+              { "id": "custom.cellOptions", "value": { "type": "color-background", "mode": "basic" } }
+            ]
+          }
+        ]
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "grafana-postgresql-datasource", "uid": "serenedb" },
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "WITH hosts AS (\n  SELECT DISTINCT resource_attributes->>'host.name' AS host\n  FROM (\n    SELECT resource_attributes FROM otel_metrics_gauge WHERE $__timeFilter(\"timestamp\")\n    UNION ALL\n    SELECT resource_attributes FROM otel_metrics_sum WHERE $__timeFilter(\"timestamp\")\n    UNION ALL\n    SELECT resource_attributes FROM otel_logs WHERE $__timeFilter(\"timestamp\")\n  ) x\n  WHERE resource_attributes->>'host.name' IS NOT NULL\n    AND resource_attributes->>'host.name' IN (${host:sqlstring})\n),\nlast_metric AS (\n  SELECT resource_attributes->>'host.name' AS host,\n         max(\"timestamp\") AS last_seen,\n         max(resource_attributes->>'service.name') AS service_name\n  FROM otel_metrics_gauge\n  WHERE $__timeFilter(\"timestamp\")\n  GROUP BY 1\n),\nuptime AS (\n  SELECT DISTINCT ON (resource_attributes->>'host.name')\n         resource_attributes->>'host.name' AS host,\n         value AS process_uptime_s\n  FROM otel_metrics_gauge\n  WHERE metric_name = 'process.uptime'\n    AND $__timeFilter(\"timestamp\")\n  ORDER BY resource_attributes->>'host.name', \"timestamp\" DESC\n),\nmem AS (\n  SELECT DISTINCT ON (resource_attributes->>'host.name')\n         resource_attributes->>'host.name' AS host,\n         value AS memory_util\n  FROM otel_metrics_gauge\n  WHERE metric_name = 'process.memory.utilization'\n    AND $__timeFilter(\"timestamp\")\n  ORDER BY resource_attributes->>'host.name', \"timestamp\" DESC\n),\ncpu AS (\n  SELECT DISTINCT ON (resource_attributes->>'host.name')\n         resource_attributes->>'host.name' AS host,\n         value AS cpu_util\n  FROM otel_metrics_gauge\n  WHERE metric_name = 'process.cpu.utilization'\n    AND $__timeFilter(\"timestamp\")\n  ORDER BY resource_attributes->>'host.name', \"timestamp\" DESC\n),\nerrs AS (\n  SELECT resource_attributes->>'host.name' AS host,\n         count(*) AS error_lines\n  FROM otel_logs\n  WHERE $__timeFilter(\"timestamp\")\n  GROUP BY 1\n)\nSELECT h.host,\n       coalesce(lm.service_name, '-') AS service,\n       lm.last_seen,\n       CASE WHEN lm.last_seen > now() - interval '5 minutes' THEN 'UP' ELSE 'DOWN' END AS status,\n       round(u.process_uptime_s::numeric, 0) AS process_uptime_s,\n       round((c.cpu_util * 100)::numeric, 2) AS cpu_pct,\n       round((m.memory_util * 100)::numeric, 2) AS memory_pct,\n       coalesce(e.error_lines, 0) AS error_lines\nFROM hosts h\nLEFT JOIN last_metric lm ON lm.host = h.host\nLEFT JOIN uptime u ON u.host = h.host\nLEFT JOIN cpu c ON c.host = h.host\nLEFT JOIN mem m ON m.host = h.host\nLEFT JOIN errs e ON e.host = h.host\nORDER BY status ASC, h.host"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "id": 20,
+      "title": "Service uptime by server",
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 13 },
+      "datasource": { "type": "grafana-postgresql-datasource", "uid": "serenedb" },
+      "fieldConfig": {
+        "defaults": { "unit": "s", "custom": { "drawStyle": "line", "lineWidth": 2, "fillOpacity": 10, "showPoints": "never" } },
+        "overrides": []
+      },
+      "options": { "legend": { "displayMode": "list", "placement": "bottom", "showLegend": true }, "tooltip": { "mode": "multi" } },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "grafana-postgresql-datasource", "uid": "serenedb" },
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "SELECT\n  \"timestamp\" AS time,\n  resource_attributes->>'host.name' AS metric,\n  value\nFROM otel_metrics_gauge\nWHERE metric_name = 'process.uptime'\n  AND $__timeFilter(\"timestamp\")\n  AND resource_attributes->>'host.name' IN (${host:sqlstring})\nORDER BY 1"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "id": 21,
+      "title": "Process CPU utilization by server",
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 13 },
+      "datasource": { "type": "grafana-postgresql-datasource", "uid": "serenedb" },
+      "fieldConfig": {
+        "defaults": { "unit": "percentunit", "custom": { "drawStyle": "line", "lineWidth": 2, "fillOpacity": 10, "showPoints": "never" }, "min": 0 },
+        "overrides": []
+      },
+      "options": { "legend": { "displayMode": "list", "placement": "bottom", "showLegend": true }, "tooltip": { "mode": "multi" } },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "grafana-postgresql-datasource", "uid": "serenedb" },
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "SELECT\n  \"timestamp\" AS time,\n  resource_attributes->>'host.name' AS metric,\n  value\nFROM otel_metrics_gauge\nWHERE metric_name = 'process.cpu.utilization'\n  AND $__timeFilter(\"timestamp\")\n  AND resource_attributes->>'host.name' IN (${host:sqlstring})\nORDER BY 1"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "id": 22,
+      "title": "Process memory utilization by server",
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 13 },
+      "datasource": { "type": "grafana-postgresql-datasource", "uid": "serenedb" },
+      "fieldConfig": {
+        "defaults": { "unit": "percentunit", "custom": { "drawStyle": "line", "lineWidth": 2, "fillOpacity": 10, "showPoints": "never" }, "min": 0 },
+        "overrides": []
+      },
+      "options": { "legend": { "displayMode": "list", "placement": "bottom", "showLegend": true }, "tooltip": { "mode": "multi" } },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "grafana-postgresql-datasource", "uid": "serenedb" },
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "SELECT\n  \"timestamp\" AS time,\n  resource_attributes->>'host.name' AS metric,\n  value\nFROM otel_metrics_gauge\nWHERE metric_name = 'process.memory.utilization'\n  AND $__timeFilter(\"timestamp\")\n  AND resource_attributes->>'host.name' IN (${host:sqlstring})\nORDER BY 1"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "id": 23,
+      "title": "Error log rate by server",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 21 },
+      "datasource": { "type": "grafana-postgresql-datasource", "uid": "serenedb" },
+      "fieldConfig": {
+        "defaults": { "unit": "short", "custom": { "drawStyle": "bars", "lineWidth": 1, "fillOpacity": 50, "stacking": { "mode": "normal" } } },
+        "overrides": []
+      },
+      "options": { "legend": { "displayMode": "list", "placement": "bottom", "showLegend": true }, "tooltip": { "mode": "multi" } },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "grafana-postgresql-datasource", "uid": "serenedb" },
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "SELECT\n  $__timeGroupAlias(\"timestamp\", $__interval),\n  resource_attributes->>'host.name' AS metric,\n  count(*) AS value\nFROM otel_logs\nWHERE $__timeFilter(\"timestamp\")\n  AND resource_attributes->>'host.name' IN (${host:sqlstring})\nGROUP BY 1, 2\nORDER BY 1"
+        }
+      ]
+    },
+    {
+      "type": "table",
+      "id": 30,
+      "title": "Recent errors (all selected servers)",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 21 },
+      "datasource": { "type": "grafana-postgresql-datasource", "uid": "serenedb" },
+      "options": { "showHeader": true, "cellHeight": "sm" },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "grafana-postgresql-datasource", "uid": "serenedb" },
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT\n  \"timestamp\",\n  resource_attributes->>'host.name' AS host,\n  coalesce(resource_attributes->>'service.name', service_name) AS service,\n  left(body, 240) AS body\nFROM otel_logs\nWHERE $__timeFilter(\"timestamp\")\n  AND resource_attributes->>'host.name' IN (${host:sqlstring})\nORDER BY \"timestamp\" DESC\nLIMIT 100"
+        }
+      ]
+    }
+  ],
+  "refresh": "30s",
+  "schemaVersion": 39,
+  "tags": ["cytosorbents", "fleet", "opentelemetry", "uptime"],
+  "templating": {
+    "list": [
+      {
+        "name": "host",
+        "label": "Host",
+        "type": "query",
+        "datasource": { "type": "grafana-postgresql-datasource", "uid": "serenedb" },
+        "definition": "SELECT DISTINCT resource_attributes->>'host.name' AS __text, resource_attributes->>'host.name' AS __value FROM (\n  SELECT resource_attributes FROM otel_metrics_gauge\n  UNION ALL SELECT resource_attributes FROM otel_metrics_sum\n  UNION ALL SELECT resource_attributes FROM otel_logs\n) s\nWHERE resource_attributes->>'host.name' IS NOT NULL\nORDER BY 1",
+        "query": "SELECT DISTINCT resource_attributes->>'host.name' AS __text, resource_attributes->>'host.name' AS __value FROM (\n  SELECT resource_attributes FROM otel_metrics_gauge\n  UNION ALL SELECT resource_attributes FROM otel_metrics_sum\n  UNION ALL SELECT resource_attributes FROM otel_logs\n) s\nWHERE resource_attributes->>'host.name' IS NOT NULL\nORDER BY 1",
+        "refresh": 2,
+        "includeAll": true,
+        "allValue": null,
+        "multi": true,
+        "current": { "selected": true, "text": "All", "value": "$__all" },
+        "options": [],
+        "sort": 1
+      }
+    ]
+  },
+  "time": { "from": "now-6h", "to": "now" },
+  "timezone": "browser",
+  "title": "Fleet Overview",
+  "uid": "cyto-fleet-overview",
+  "version": 1
+}

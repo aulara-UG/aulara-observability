@@ -19,13 +19,18 @@ Apps / agents  --OTLP-->  otel-collector  --OTLP/HTTP-->  serenedb  <--SQL--  gr
 
 ## Deploy
 
-Use the Railway template (**Aulara Observability**) from the marketplace, or:
+[![Deploy on Railway](https://railway.com/button.svg)](https://railway.com/deploy/grafana-opentelemetry-stack-by-aulara)
+
+Marketplace: **Grafana OpenTelemetry Stack by Aulara**. Secrets and cross-service wiring are auto-filled (`${{secret()}}`, `${{serenedb.*}}`). You usually only edit `OTEL_TENANTS`.
+
+Or deploy from this repo:
 
 ```bash
-# after linking a project with the three main services
 railway up ./serenedb --path-as-root --service serenedb
 railway up ./otel-collector --path-as-root --service otel-collector
 railway up ./grafana --path-as-root --service grafana
+# optional: re-apply zero-config vars after linking
+./scripts/apply-template-vars.sh
 ```
 
 ## Configure apps
@@ -44,10 +49,10 @@ Use the generated HTTPS domain on `otel-collector` with the same Basic Auth head
 
 ### Multi-tenancy
 
-Set on `otel-collector`:
+Template ships with a generated `demo:<random>` tenant. Add more on `otel-collector`:
 
 ```text
-OTEL_TENANTS=demo:changeme,acme:secret
+OTEL_TENANTS=demo:xxxx,acme:secret
 ```
 
 Authenticated username is stamped as `resource.attributes["tenant.id"]`.

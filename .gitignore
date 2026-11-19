@@ -7,3 +7,5 @@ secrets/
 .DS_Store
 tmp/
 agents/
+.railway-deploy-credentials.txt
+agents/**/.otel-basic-auth
