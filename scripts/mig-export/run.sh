@@ -1,12 +1,18 @@
 #!/bin/sh
 set -eu
-echo "dumping from ${SERENEDB_HOST}:${SERENEDB_PORT}"
-PGPASSWORD="$POSTGRES_PASSWORD" pg_dump \
+# Prefer grafana_ro: POSTGRES_PASSWORD is only seeded at first volume init and
+# may drift from the Railway variable after rotations.
+DUMP_USER="${DUMP_USER:-grafana_ro}"
+DUMP_PASSWORD="${DUMP_PASSWORD:-$GRAFANA_DB_PASSWORD}"
+echo "dumping from ${SERENEDB_HOST}:${SERENEDB_PORT} as ${DUMP_USER}"
+PGPASSWORD="$DUMP_PASSWORD" pg_dump \
   -h "$SERENEDB_HOST" \
   -p "$SERENEDB_PORT" \
-  -U postgres \
+  -U "$DUMP_USER" \
   -d postgres \
   -Fc \
+  --no-owner \
+  --no-acl \
   -f /tmp/dump.dump
 ls -la /tmp/dump.dump
 echo dump_ok

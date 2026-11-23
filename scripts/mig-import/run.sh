@@ -12,22 +12,25 @@ until curl -fsS -H "X-Mig-Token: $MIG_TOKEN" -o /tmp/dump.dump "$DUMP_URL"; do
   sleep 5
 done
 ls -la /tmp/dump.dump
-echo restoring
-PGPASSWORD="$POSTGRES_PASSWORD" pg_restore \
+# otel_ingest has DML on otel_* (grafana_ro is SELECT-only).
+RESTORE_USER="${RESTORE_USER:-otel_ingest}"
+RESTORE_PASSWORD="${RESTORE_PASSWORD:-$OTEL_INGEST_PASSWORD}"
+echo restoring as "$RESTORE_USER"
+PGPASSWORD="$RESTORE_PASSWORD" pg_restore \
   -h "$SERENEDB_HOST" \
   -p "$SERENEDB_PORT" \
-  -U postgres \
+  -U "$RESTORE_USER" \
   -d postgres \
-  --clean \
-  --if-exists \
+  --data-only \
+  --disable-triggers \
   --no-owner \
   --no-acl \
   /tmp/dump.dump || true
 echo verify
-PGPASSWORD="$POSTGRES_PASSWORD" psql \
+PGPASSWORD="$RESTORE_PASSWORD" psql \
   -h "$SERENEDB_HOST" \
   -p "$SERENEDB_PORT" \
-  -U postgres \
+  -U "$RESTORE_USER" \
   -d postgres \
   -c "SELECT relname, n_live_tup FROM pg_stat_user_tables WHERE relname LIKE 'otel_%' ORDER BY 1;"
 echo done
