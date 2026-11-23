@@ -33,9 +33,10 @@ while IFS= read -r table || [ -n "$table" ]; do
     echo "missing $file" >&2
     continue
   fi
-  echo "truncate+copy $table"
+  echo "delete+copy $table"
+  # otel_ingest has DELETE/INSERT but not necessarily TRUNCATE.
   PGPASSWORD="$RESTORE_PASSWORD" psql -h "$HOST" -p "$PORT" -U "$RESTORE_USER" -d postgres -v ON_ERROR_STOP=1 \
-    -c "TRUNCATE TABLE ${table};" \
+    -c "DELETE FROM ${table};" \
     -c "\\copy ${table} FROM '${file}' WITH (FORMAT csv, HEADER true)"
 done < /tmp/dump/tables.txt
 
