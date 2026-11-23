@@ -92,6 +92,11 @@
                   "color": "red",
                   "index": 1,
                   "text": "DOWN"
+                },
+                "QUIET": {
+                  "color": "yellow",
+                  "index": 2,
+                  "text": "QUIET"
                 }
               }
             }

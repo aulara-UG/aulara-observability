@@ -57,7 +57,7 @@
       "type": "stat",
       "id": 1,
       "title": "Service status",
-      "description": "UP if any log from this service in last 5 minutes.",
+      "description": "UP = log in last 5m. QUIET = log in last 1h (normal for sparse services like DBs). DOWN = older/none.",
       "gridPos": {
         "h": 4,
         "w": 3,
@@ -92,6 +92,11 @@
                   "color": "red",
                   "index": 1,
                   "text": "DOWN"
+                },
+                "QUIET": {
+                  "color": "yellow",
+                  "index": 2,
+                  "text": "QUIET"
                 }
               }
             }
@@ -119,7 +124,7 @@
           },
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT CASE WHEN max(\"timestamp\") IS NOT NULL\n  AND epoch_ns(max(\"timestamp\")) > (extract(epoch from now()) - 300) * 1000000000 THEN 'UP' ELSE 'DOWN' END\nFROM otel_logs WHERE coalesce(resource_attributes->>'service.name', service_name) = ${service:sqlstring}"
+          "rawSql": "SELECT CASE\n  WHEN max(\"timestamp\") IS NULL THEN 'DOWN'\n  WHEN epoch_ns(max(\"timestamp\")) > (extract(epoch from now()) - 300) * 1000000000 THEN 'UP'\n  WHEN epoch_ns(max(\"timestamp\")) > (extract(epoch from now()) - 3600) * 1000000000 THEN 'QUIET'\n  ELSE 'DOWN'\nEND\nFROM otel_logs WHERE coalesce(resource_attributes->>'service.name', service_name) = ${service:sqlstring}"
         }
       ]
     },
@@ -148,7 +153,8 @@
                 "value": null
               }
             ]
-          }
+          },
+          "noValue": "0"
         },
         "overrides": []
       },
@@ -179,12 +185,67 @@
     {
       "type": "stat",
       "id": 3,
+      "title": "Minutes since last log",
+      "description": "How long since the last log line for this service (any time).",
+      "gridPos": {
+        "h": 4,
+        "w": 3,
+        "x": 6,
+        "y": 0
+      },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "serenedb"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "blue",
+                "value": null
+              }
+            ]
+          },
+          "unit": "m",
+          "noValue": "n/a"
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "serenedb"
+          },
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT CASE WHEN max(\"timestamp\") IS NULL THEN NULL\n  ELSE (extract(epoch from now())*1e9 - epoch_ns(max(\"timestamp\"))) / 6e10\nEND\nFROM otel_logs WHERE coalesce(resource_attributes->>'service.name', service_name) = ${service:sqlstring}"
+        }
+      ]
+    },
+    {
+      "type": "stat",
+      "id": 4,
       "title": "True errors",
       "description": "",
       "gridPos": {
         "h": 4,
         "w": 3,
-        "x": 6,
+        "x": 9,
         "y": 0
       },
       "datasource": {
@@ -213,7 +274,8 @@
                 "value": 50
               }
             ]
-          }
+          },
+          "noValue": "0"
         },
         "overrides": []
       },
@@ -243,13 +305,13 @@
     },
     {
       "type": "stat",
-      "id": 4,
+      "id": 5,
       "title": "Error rate",
       "description": "",
       "gridPos": {
         "h": 4,
         "w": 3,
-        "x": 9,
+        "x": 12,
         "y": 0
       },
       "datasource": {
@@ -275,7 +337,8 @@
               }
             ]
           },
-          "unit": "percentunit"
+          "unit": "percentunit",
+          "noValue": "0"
         },
         "overrides": []
       },
@@ -305,13 +368,13 @@
     },
     {
       "type": "stat",
-      "id": 5,
+      "id": 6,
       "title": "Hosts",
       "description": "",
       "gridPos": {
         "h": 4,
         "w": 3,
-        "x": 12,
+        "x": 15,
         "y": 0
       },
       "datasource": {
@@ -328,7 +391,8 @@
                 "value": null
               }
             ]
-          }
+          },
+          "noValue": "0"
         },
         "overrides": []
       },
@@ -358,63 +422,9 @@
     },
     {
       "type": "stat",
-      "id": 6,
-      "title": "Process CPU (sum)",
-      "description": "Only when process metrics carry this service.name.",
-      "gridPos": {
-        "h": 4,
-        "w": 3,
-        "x": 15,
-        "y": 0
-      },
-      "datasource": {
-        "type": "grafana-postgresql-datasource",
-        "uid": "serenedb"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "blue",
-                "value": null
-              }
-            ]
-          },
-          "unit": "percentunit"
-        },
-        "overrides": []
-      },
-      "options": {
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ]
-        },
-        "colorMode": "value",
-        "graphMode": "none",
-        "justifyMode": "center",
-        "textMode": "auto"
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "datasource": {
-            "type": "grafana-postgresql-datasource",
-            "uid": "serenedb"
-          },
-          "format": "table",
-          "rawQuery": true,
-          "rawSql": "SELECT coalesce(sum(value) FILTER (WHERE attributes->>'state' IN ('user','system')), 0)\nFROM otel_metrics_gauge\nWHERE metric_name = 'process.cpu.utilization'\n  AND resource_attributes->>'service.name' = ${service:sqlstring}\n  AND \"timestamp\" > make_timestamp_ns((extract(epoch from now()) - 300)::bigint * 1000000000)"
-        }
-      ]
-    },
-    {
-      "type": "stat",
       "id": 7,
-      "title": "Process mem",
-      "description": "",
+      "title": "Process CPU",
+      "description": "Only for services that emit process.* with this service.name (container DB logs usually do not).",
       "gridPos": {
         "h": 4,
         "w": 3,
@@ -436,7 +446,8 @@
               }
             ]
           },
-          "unit": "percentunit"
+          "unit": "percentunit",
+          "noValue": "not scraped"
         },
         "overrides": []
       },
@@ -460,15 +471,15 @@
           },
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT max(value)\nFROM otel_metrics_gauge\nWHERE metric_name = 'process.memory.utilization'\n  AND resource_attributes->>'service.name' = ${service:sqlstring}\n  AND \"timestamp\" > make_timestamp_ns((extract(epoch from now()) - 300)::bigint * 1000000000)"
+          "rawSql": "SELECT CASE WHEN count(*) = 0 THEN NULL\n  ELSE sum(value) FILTER (WHERE attributes->>'state' IN ('user','system'))\nEND\nFROM otel_metrics_gauge\nWHERE metric_name = 'process.cpu.utilization'\n  AND resource_attributes->>'service.name' = ${service:sqlstring}\n  AND \"timestamp\" > make_timestamp_ns((extract(epoch from now()) - 300)::bigint * 1000000000)"
         }
       ]
     },
     {
       "type": "stat",
       "id": 8,
-      "title": "Process uptime",
-      "description": "STAT only.",
+      "title": "Process mem",
+      "description": "not scraped = no process metrics for this service.name. Use Host Detail for node/process CPU.",
       "gridPos": {
         "h": 4,
         "w": 3,
@@ -490,7 +501,8 @@
               }
             ]
           },
-          "unit": "dtdurations"
+          "unit": "percentunit",
+          "noValue": "not scraped"
         },
         "overrides": []
       },
@@ -514,7 +526,7 @@
           },
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT max(value)\nFROM otel_metrics_gauge\nWHERE metric_name = 'process.uptime'\n  AND resource_attributes->>'service.name' = ${service:sqlstring}\n  AND \"timestamp\" > make_timestamp_ns((extract(epoch from now()) - 300)::bigint * 1000000000)"
+          "rawSql": "SELECT CASE WHEN count(*) = 0 THEN NULL ELSE max(value) END\nFROM otel_metrics_gauge\nWHERE metric_name = 'process.memory.utilization'\n  AND resource_attributes->>'service.name' = ${service:sqlstring}\n  AND \"timestamp\" > make_timestamp_ns((extract(epoch from now()) - 300)::bigint * 1000000000)"
         }
       ]
     },
@@ -585,19 +597,24 @@
                         "index": 2,
                         "text": "STALE"
                       },
+                      "QUIET": {
+                        "color": "yellow",
+                        "index": 3,
+                        "text": "QUIET"
+                      },
                       "UNKNOWN": {
                         "color": "super-light-yellow",
-                        "index": 3,
+                        "index": 4,
                         "text": "UNKNOWN"
                       },
                       "RECENT_BOOT": {
                         "color": "purple",
-                        "index": 4,
+                        "index": 5,
                         "text": "RECENT BOOT"
                       },
                       "STABLE": {
                         "color": "green",
-                        "index": 5,
+                        "index": 6,
                         "text": "STABLE"
                       }
                     }
@@ -624,7 +641,7 @@
           },
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT resource_attributes->>'host.name' AS host,\n       count(*) AS log_lines,\n       count(*) FILTER (WHERE (\n    log_attributes->>'log.kind' = 'error'\n    OR log_attributes->>'exception.type' IS NOT NULL\n    OR upper(coalesce(severity_text, '')) IN ('ERROR', 'FATAL', 'CRITICAL')\n    OR severity_number >= 17\n  )\n  AND NOT (\n    log_attributes->>'backup.status' = 'success'\n    OR log_attributes->>'event.name' = 'backup.success'\n    OR log_attributes->>'event.name' = 'otel-backup-event'\n  )) AS errors,\n       max(\"timestamp\") AS last_seen,\n       CASE WHEN epoch_ns(max(\"timestamp\")) > (extract(epoch from now()) - 300) * 1000000000 THEN 'UP' ELSE 'STALE' END AS status\nFROM otel_logs\nWHERE coalesce(resource_attributes->>'service.name', service_name) = ${service:sqlstring} AND $__timeFilter(\"timestamp\")\nGROUP BY 1\nORDER BY errors DESC, last_seen DESC"
+          "rawSql": "SELECT resource_attributes->>'host.name' AS host,\n       count(*) AS log_lines,\n       count(*) FILTER (WHERE (\n    log_attributes->>'log.kind' = 'error'\n    OR log_attributes->>'exception.type' IS NOT NULL\n    OR upper(coalesce(severity_text, '')) IN ('ERROR', 'FATAL', 'CRITICAL')\n    OR severity_number >= 17\n  )\n  AND NOT (\n    log_attributes->>'backup.status' = 'success'\n    OR log_attributes->>'event.name' = 'backup.success'\n    OR log_attributes->>'event.name' = 'otel-backup-event'\n  )) AS errors,\n       max(\"timestamp\") AS last_seen,\n       CASE\n         WHEN epoch_ns(max(\"timestamp\")) > (extract(epoch from now()) - 300) * 1000000000 THEN 'UP'\n         WHEN epoch_ns(max(\"timestamp\")) > (extract(epoch from now()) - 3600) * 1000000000 THEN 'QUIET'\n         ELSE 'STALE'\n       END AS status\nFROM otel_logs\nWHERE coalesce(resource_attributes->>'service.name', service_name) = ${service:sqlstring} AND $__timeFilter(\"timestamp\")\nGROUP BY 1\nORDER BY errors DESC, last_seen DESC"
         }
       ]
     },

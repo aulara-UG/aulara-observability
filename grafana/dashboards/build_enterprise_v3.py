@@ -198,9 +198,10 @@ STATUS_MAP = {
                         "OK": {"color": "green", "index": 0, "text": "OK"},
                         "FAIL": {"color": "red", "index": 1, "text": "FAIL"},
                         "STALE": {"color": "orange", "index": 2, "text": "STALE"},
-                        "UNKNOWN": {"color": "super-light-yellow", "index": 3, "text": "UNKNOWN"},
-                        "RECENT_BOOT": {"color": "purple", "index": 4, "text": "RECENT BOOT"},
-                        "STABLE": {"color": "green", "index": 5, "text": "STABLE"},
+                        "QUIET": {"color": "yellow", "index": 3, "text": "QUIET"},
+                        "UNKNOWN": {"color": "super-light-yellow", "index": 4, "text": "UNKNOWN"},
+                        "RECENT_BOOT": {"color": "purple", "index": 5, "text": "RECENT BOOT"},
+                        "STABLE": {"color": "green", "index": 6, "text": "STABLE"},
                     },
                 }
             ],
@@ -210,7 +211,19 @@ STATUS_MAP = {
 
 
 def panel_stat(
-    pid, title, sql, x, y, w=4, h=4, unit=None, desc="", thresholds=None, color_mode="value", mappings=None
+    pid,
+    title,
+    sql,
+    x,
+    y,
+    w=4,
+    h=4,
+    unit=None,
+    desc="",
+    thresholds=None,
+    color_mode="value",
+    mappings=None,
+    no_value=None,
 ):
     fc = {
         "defaults": {
@@ -223,6 +236,8 @@ def panel_stat(
         fc["defaults"]["unit"] = unit
     if mappings:
         fc["defaults"]["mappings"] = mappings
+    if no_value is not None:
+        fc["defaults"]["noValue"] = no_value
     return {
         "type": "stat",
         "id": pid,
@@ -470,6 +485,7 @@ UP_DOWN_MAP = [
         "options": {
             "UP": {"color": "green", "index": 0, "text": "UP"},
             "DOWN": {"color": "red", "index": 1, "text": "DOWN"},
+            "QUIET": {"color": "yellow", "index": 2, "text": "QUIET"},
         },
     }
 ]
@@ -1452,15 +1468,19 @@ def build_service_detail():
         panel_stat(
             1,
             "Service status",
-            f"""SELECT CASE WHEN max("timestamp") IS NOT NULL
-  AND {FRESH_5M.format(col='max("timestamp")')} THEN 'UP' ELSE 'DOWN' END
+            f"""SELECT CASE
+  WHEN max("timestamp") IS NULL THEN 'DOWN'
+  WHEN epoch_ns(max("timestamp")) > (extract(epoch from now()) - 300) * 1000000000 THEN 'UP'
+  WHEN epoch_ns(max("timestamp")) > (extract(epoch from now()) - 3600) * 1000000000 THEN 'QUIET'
+  ELSE 'DOWN'
+END
 FROM otel_logs WHERE {svc}""",
             0,
             0,
             w=3,
             color_mode="background",
             mappings=UP_DOWN_MAP,
-            desc="UP if any log from this service in last 5 minutes.",
+            desc="UP = log in last 5m. QUIET = log in last 1h (normal for sparse services like DBs). DOWN = older/none.",
         ),
         panel_stat(
             2,
@@ -1470,20 +1490,36 @@ WHERE {svc} AND $__timeFilter("timestamp")""",
             3,
             0,
             w=3,
+            no_value="0",
         ),
         panel_stat(
             3,
+            "Minutes since last log",
+            f"""SELECT CASE WHEN max("timestamp") IS NULL THEN NULL
+  ELSE (extract(epoch from now())*1e9 - epoch_ns(max("timestamp"))) / 6e10
+END
+FROM otel_logs WHERE {svc}""",
+            6,
+            0,
+            w=3,
+            unit="m",
+            no_value="n/a",
+            desc="How long since the last log line for this service (any time).",
+        ),
+        panel_stat(
+            4,
             "True errors",
             f"""SELECT count(*) FROM otel_logs
 WHERE {svc} AND $__timeFilter("timestamp") AND {ERROR_PRED}""",
-            6,
+            9,
             0,
             w=3,
             thresholds=THRESH_ERR,
             color_mode="background",
+            no_value="0",
         ),
         panel_stat(
-            4,
+            5,
             "Error rate",
             f"""
 SELECT CASE WHEN count(*) = 0 THEN 0
@@ -1491,44 +1527,32 @@ SELECT CASE WHEN count(*) = 0 THEN 0
 END
 FROM otel_logs WHERE {svc} AND $__timeFilter("timestamp")
 """.strip(),
-            9,
+            12,
             0,
             w=3,
             unit="percentunit",
             thresholds=THRESH_CPU,
-        ),
-        panel_stat(
-            5,
-            "Hosts",
-            f"""SELECT count(DISTINCT resource_attributes->>'host.name')
-FROM otel_logs WHERE {svc} AND $__timeFilter("timestamp")""",
-            12,
-            0,
-            w=3,
+            no_value="0",
         ),
         panel_stat(
             6,
-            "Process CPU (sum)",
-            f"""
-SELECT coalesce(sum(value) FILTER (WHERE attributes->>'state' IN ('user','system')), 0)
-FROM otel_metrics_gauge
-WHERE metric_name = 'process.cpu.utilization'
-  AND resource_attributes->>'service.name' = {svc_name}
-  AND {FRESH_WHERE}
-""".strip(),
+            "Hosts",
+            f"""SELECT count(DISTINCT resource_attributes->>'host.name')
+FROM otel_logs WHERE {svc} AND $__timeFilter("timestamp")""",
             15,
             0,
             w=3,
-            unit="percentunit",
-            desc="Only when process metrics carry this service.name.",
+            no_value="0",
         ),
         panel_stat(
             7,
-            "Process mem",
+            "Process CPU",
             f"""
-SELECT max(value)
+SELECT CASE WHEN count(*) = 0 THEN NULL
+  ELSE sum(value) FILTER (WHERE attributes->>'state' IN ('user','system'))
+END
 FROM otel_metrics_gauge
-WHERE metric_name = 'process.memory.utilization'
+WHERE metric_name = 'process.cpu.utilization'
   AND resource_attributes->>'service.name' = {svc_name}
   AND {FRESH_WHERE}
 """.strip(),
@@ -1536,22 +1560,25 @@ WHERE metric_name = 'process.memory.utilization'
             0,
             w=3,
             unit="percentunit",
+            no_value="not scraped",
+            desc="Only for services that emit process.* with this service.name (container DB logs usually do not).",
         ),
         panel_stat(
             8,
-            "Process uptime",
+            "Process mem",
             f"""
-SELECT max(value)
+SELECT CASE WHEN count(*) = 0 THEN NULL ELSE max(value) END
 FROM otel_metrics_gauge
-WHERE metric_name = 'process.uptime'
+WHERE metric_name = 'process.memory.utilization'
   AND resource_attributes->>'service.name' = {svc_name}
   AND {FRESH_WHERE}
 """.strip(),
             21,
             0,
             w=3,
-            unit="dtdurations",
-            desc="STAT only.",
+            unit="percentunit",
+            no_value="not scraped",
+            desc="not scraped = no process metrics for this service.name. Use Host Detail for node/process CPU.",
         ),
         panel_table(
             10,
@@ -1561,7 +1588,11 @@ SELECT resource_attributes->>'host.name' AS host,
        count(*) AS log_lines,
        count(*) FILTER (WHERE {ERROR_PRED}) AS errors,
        max("timestamp") AS last_seen,
-       CASE WHEN {FRESH_5M.format(col='max("timestamp")')} THEN 'UP' ELSE 'STALE' END AS status
+       CASE
+         WHEN epoch_ns(max("timestamp")) > (extract(epoch from now()) - 300) * 1000000000 THEN 'UP'
+         WHEN epoch_ns(max("timestamp")) > (extract(epoch from now()) - 3600) * 1000000000 THEN 'QUIET'
+         ELSE 'STALE'
+       END AS status
 FROM otel_logs
 WHERE {svc} AND $__timeFilter("timestamp")
 GROUP BY 1

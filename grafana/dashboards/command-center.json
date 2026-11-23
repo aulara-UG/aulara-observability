@@ -606,19 +606,24 @@
                         "index": 2,
                         "text": "STALE"
                       },
+                      "QUIET": {
+                        "color": "yellow",
+                        "index": 3,
+                        "text": "QUIET"
+                      },
                       "UNKNOWN": {
                         "color": "super-light-yellow",
-                        "index": 3,
+                        "index": 4,
                         "text": "UNKNOWN"
                       },
                       "RECENT_BOOT": {
                         "color": "purple",
-                        "index": 4,
+                        "index": 5,
                         "text": "RECENT BOOT"
                       },
                       "STABLE": {
                         "color": "green",
-                        "index": 5,
+                        "index": 6,
                         "text": "STABLE"
                       }
                     }
@@ -858,19 +863,24 @@
                         "index": 2,
                         "text": "STALE"
                       },
+                      "QUIET": {
+                        "color": "yellow",
+                        "index": 3,
+                        "text": "QUIET"
+                      },
                       "UNKNOWN": {
                         "color": "super-light-yellow",
-                        "index": 3,
+                        "index": 4,
                         "text": "UNKNOWN"
                       },
                       "RECENT_BOOT": {
                         "color": "purple",
-                        "index": 4,
+                        "index": 5,
                         "text": "RECENT BOOT"
                       },
                       "STABLE": {
                         "color": "green",
-                        "index": 5,
+                        "index": 6,
                         "text": "STABLE"
                       }
                     }
