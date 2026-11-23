@@ -18,7 +18,7 @@ Apps / agents  --OTLP-->  otel-collector  --OTLP/HTTP-->  serenedb  <--SQL--  gr
 
 ## Deploy
 
-[![Deploy on Railway](https://railway.com/button.svg)](https://railway.com/deploy/grafana-opentelemetry-stack-by-aulara)
+[![Deploy on Railway](https://railway.com/button.svg)](https://railway.com/deploy/grafana-openteleme-1)
 
 Marketplace: **Grafana OpenTelemetry Stack by Aulara**. One-click deploy — secrets and cross-service wiring are auto-filled (`${{secret()}}`, `${{serenedb.*}}`). Edit `OTEL_TENANTS` only when you need more tenants.
 
