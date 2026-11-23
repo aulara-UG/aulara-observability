@@ -25,17 +25,17 @@
       "title": "Host Detail",
       "type": "link",
       "icon": "dashboard",
-      "url": "/d/cyto-server-detail/host-infrastructure-detail",
+      "url": "/d/cyto-server-detail/host-infrastructure-detail?var-host=CSE-01",
       "keepTime": true,
-      "includeVars": true
+      "includeVars": false
     },
     {
       "title": "Service Detail",
       "type": "link",
       "icon": "dashboard",
-      "url": "/d/cyto-service-detail/service-detail",
+      "url": "/d/cyto-service-detail/service-detail?var-service=nextcloud-nextcloud",
       "keepTime": true,
-      "includeVars": true
+      "includeVars": false
     },
     {
       "title": "Backup Operations",
@@ -119,7 +119,7 @@
           },
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT CASE WHEN max(\"timestamp\") IS NOT NULL\n  AND epoch_ns(max(\"timestamp\")) > (extract(epoch from now()) - 300) * 1000000000 THEN 'UP' ELSE 'DOWN' END\nFROM otel_metrics_gauge\nWHERE resource_attributes->>'host.name' = '$host' AND metric_name = 'system.uptime'"
+          "rawSql": "SELECT CASE WHEN max(\"timestamp\") IS NOT NULL\n  AND epoch_ns(max(\"timestamp\")) > (extract(epoch from now()) - 300) * 1000000000 THEN 'UP' ELSE 'DOWN' END\nFROM otel_metrics_gauge\nWHERE resource_attributes->>'host.name' = coalesce(nullif('$host',''), 'CSE-01') AND metric_name = 'system.uptime'"
         }
       ]
     },
@@ -173,7 +173,7 @@
           },
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT value FROM otel_metrics_gauge\nWHERE metric_name='system.uptime' AND resource_attributes->>'host.name' = '$host'\nORDER BY \"timestamp\" DESC LIMIT 1"
+          "rawSql": "SELECT value FROM otel_metrics_gauge\nWHERE metric_name='system.uptime' AND resource_attributes->>'host.name' = coalesce(nullif('$host',''), 'CSE-01')\nORDER BY \"timestamp\" DESC LIMIT 1"
         }
       ]
     },
@@ -227,7 +227,7 @@
           },
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT max(value) FROM otel_metrics_gauge\nWHERE metric_name='process.uptime' AND resource_attributes->>'host.name' = '$host' AND \"timestamp\" > make_timestamp_ns((extract(epoch from now()) - 300)::bigint * 1000000000)"
+          "rawSql": "SELECT max(value) FROM otel_metrics_gauge\nWHERE metric_name='process.uptime' AND resource_attributes->>'host.name' = coalesce(nullif('$host',''), 'CSE-01') AND \"timestamp\" > make_timestamp_ns((extract(epoch from now()) - 300)::bigint * 1000000000)"
         }
       ]
     },
@@ -280,7 +280,7 @@
           },
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT CASE WHEN value < 7200 THEN 'RECENT_BOOT' ELSE 'STABLE' END\nFROM otel_metrics_gauge\nWHERE metric_name='system.uptime' AND resource_attributes->>'host.name' = '$host'\nORDER BY \"timestamp\" DESC LIMIT 1"
+          "rawSql": "SELECT CASE WHEN value < 7200 THEN 'RECENT_BOOT' ELSE 'STABLE' END\nFROM otel_metrics_gauge\nWHERE metric_name='system.uptime' AND resource_attributes->>'host.name' = coalesce(nullif('$host',''), 'CSE-01')\nORDER BY \"timestamp\" DESC LIMIT 1"
         }
       ]
     },
@@ -342,7 +342,7 @@
           },
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT 1 - avg(value)\nFROM otel_metrics_gauge\nWHERE metric_name = 'system.cpu.utilization'\n  AND attributes->>'state' = 'idle'\n  AND resource_attributes->>'host.name' = '$host'\n  AND \"timestamp\" > make_timestamp_ns((extract(epoch from now()) - 300)::bigint * 1000000000)"
+          "rawSql": "SELECT 1 - avg(value)\nFROM otel_metrics_gauge\nWHERE metric_name = 'system.cpu.utilization'\n  AND attributes->>'state' = 'idle'\n  AND resource_attributes->>'host.name' = coalesce(nullif('$host',''), 'CSE-01')\n  AND \"timestamp\" > make_timestamp_ns((extract(epoch from now()) - 300)::bigint * 1000000000)"
         }
       ]
     },
@@ -404,7 +404,7 @@
           },
           "format": "table",
           "rawQuery": true,
-          "rawSql": "WITH samples AS (\n  SELECT resource_attributes->>'host.name' AS host,\n         attributes->>'cpu' AS cpu,\n         date_trunc('minute', (\"timestamp\")::timestamp) AS bucket,\n         1 - avg(value) AS busy\n  FROM otel_metrics_gauge\n  WHERE metric_name = 'system.cpu.utilization'\n    AND attributes->>'state' = 'idle'\n    AND $__timeFilter(\"timestamp\")\n    AND resource_attributes->>'host.name' = '$host'\n    \n  GROUP BY 1, 2, 3\n)\nSELECT percentile_cont(0.95) WITHIN GROUP (ORDER BY busy) FROM samples"
+          "rawSql": "WITH samples AS (\n  SELECT resource_attributes->>'host.name' AS host,\n         attributes->>'cpu' AS cpu,\n         date_trunc('minute', (\"timestamp\")::timestamp) AS bucket,\n         1 - avg(value) AS busy\n  FROM otel_metrics_gauge\n  WHERE metric_name = 'system.cpu.utilization'\n    AND attributes->>'state' = 'idle'\n    AND $__timeFilter(\"timestamp\")\n    AND resource_attributes->>'host.name' = coalesce(nullif('$host',''), 'CSE-01')\n    \n  GROUP BY 1, 2, 3\n)\nSELECT percentile_cont(0.95) WITHIN GROUP (ORDER BY busy) FROM samples"
         }
       ]
     },
@@ -466,7 +466,7 @@
           },
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT value\nFROM otel_metrics_gauge\nWHERE metric_name = 'system.memory.utilization'\n  AND attributes->>'state' = 'used'\n  AND resource_attributes->>'host.name' = '$host'\n  AND $__timeFilter(\"timestamp\")\nORDER BY \"timestamp\" DESC\nLIMIT 1"
+          "rawSql": "SELECT value\nFROM otel_metrics_gauge\nWHERE metric_name = 'system.memory.utilization'\n  AND attributes->>'state' = 'used'\n  AND resource_attributes->>'host.name' = coalesce(nullif('$host',''), 'CSE-01')\n  AND $__timeFilter(\"timestamp\")\nORDER BY \"timestamp\" DESC\nLIMIT 1"
         }
       ]
     },
@@ -531,7 +531,7 @@
           },
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT count(*) FROM otel_logs\nWHERE resource_attributes->>'host.name' = '$host' AND $__timeFilter(\"timestamp\") AND (\n    log_attributes->>'log.kind' = 'error'\n    OR log_attributes->>'exception.type' IS NOT NULL\n    OR upper(coalesce(severity_text, '')) IN ('ERROR', 'FATAL', 'CRITICAL')\n    OR severity_number >= 17\n  )\n  AND NOT (\n    log_attributes->>'backup.status' = 'success'\n    OR log_attributes->>'event.name' = 'backup.success'\n    OR log_attributes->>'event.name' = 'otel-backup-event'\n  )"
+          "rawSql": "SELECT count(*) FROM otel_logs\nWHERE resource_attributes->>'host.name' = coalesce(nullif('$host',''), 'CSE-01') AND $__timeFilter(\"timestamp\") AND (\n    log_attributes->>'log.kind' = 'error'\n    OR log_attributes->>'exception.type' IS NOT NULL\n    OR upper(coalesce(severity_text, '')) IN ('ERROR', 'FATAL', 'CRITICAL')\n    OR severity_number >= 17\n  )\n  AND NOT (\n    log_attributes->>'backup.status' = 'success'\n    OR log_attributes->>'event.name' = 'backup.success'\n    OR log_attributes->>'event.name' = 'otel-backup-event'\n  )"
         }
       ]
     },
@@ -593,7 +593,7 @@
           },
           "format": "table",
           "rawQuery": true,
-          "rawSql": "WITH samples AS (\n  SELECT resource_attributes->>'host.name' AS host,\n         attributes->>'cpu' AS cpu,\n         date_trunc('minute', (\"timestamp\")::timestamp) AS bucket,\n         1 - avg(value) AS busy\n  FROM otel_metrics_gauge\n  WHERE metric_name = 'system.cpu.utilization'\n    AND attributes->>'state' = 'idle'\n    AND $__timeFilter(\"timestamp\")\n    AND resource_attributes->>'host.name' = '$host'\n    \n  GROUP BY 1, 2, 3\n)\nSELECT percentile_cont(0.5) WITHIN GROUP (ORDER BY busy) FROM samples"
+          "rawSql": "WITH samples AS (\n  SELECT resource_attributes->>'host.name' AS host,\n         attributes->>'cpu' AS cpu,\n         date_trunc('minute', (\"timestamp\")::timestamp) AS bucket,\n         1 - avg(value) AS busy\n  FROM otel_metrics_gauge\n  WHERE metric_name = 'system.cpu.utilization'\n    AND attributes->>'state' = 'idle'\n    AND $__timeFilter(\"timestamp\")\n    AND resource_attributes->>'host.name' = coalesce(nullif('$host',''), 'CSE-01')\n    \n  GROUP BY 1, 2, 3\n)\nSELECT percentile_cont(0.5) WITHIN GROUP (ORDER BY busy) FROM samples"
         }
       ]
     },
@@ -655,7 +655,7 @@
           },
           "format": "table",
           "rawQuery": true,
-          "rawSql": "WITH samples AS (\n  SELECT resource_attributes->>'host.name' AS host,\n         attributes->>'cpu' AS cpu,\n         date_trunc('minute', (\"timestamp\")::timestamp) AS bucket,\n         1 - avg(value) AS busy\n  FROM otel_metrics_gauge\n  WHERE metric_name = 'system.cpu.utilization'\n    AND attributes->>'state' = 'idle'\n    AND $__timeFilter(\"timestamp\")\n    AND resource_attributes->>'host.name' = '$host'\n    \n  GROUP BY 1, 2, 3\n)\nSELECT percentile_cont(0.99) WITHIN GROUP (ORDER BY busy) FROM samples"
+          "rawSql": "WITH samples AS (\n  SELECT resource_attributes->>'host.name' AS host,\n         attributes->>'cpu' AS cpu,\n         date_trunc('minute', (\"timestamp\")::timestamp) AS bucket,\n         1 - avg(value) AS busy\n  FROM otel_metrics_gauge\n  WHERE metric_name = 'system.cpu.utilization'\n    AND attributes->>'state' = 'idle'\n    AND $__timeFilter(\"timestamp\")\n    AND resource_attributes->>'host.name' = coalesce(nullif('$host',''), 'CSE-01')\n    \n  GROUP BY 1, 2, 3\n)\nSELECT percentile_cont(0.99) WITHIN GROUP (ORDER BY busy) FROM samples"
         }
       ]
     },
@@ -717,7 +717,7 @@
           },
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT percentile_cont(0.95) WITHIN GROUP (ORDER BY value)\nFROM otel_metrics_gauge\nWHERE metric_name = 'system.memory.utilization'\n  AND attributes->>'state' = 'used'\n  AND $__timeFilter(\"timestamp\")\n  AND resource_attributes->>'host.name' = '$host'"
+          "rawSql": "SELECT percentile_cont(0.95) WITHIN GROUP (ORDER BY value)\nFROM otel_metrics_gauge\nWHERE metric_name = 'system.memory.utilization'\n  AND attributes->>'state' = 'used'\n  AND $__timeFilter(\"timestamp\")\n  AND resource_attributes->>'host.name' = coalesce(nullif('$host',''), 'CSE-01')"
         }
       ]
     },
@@ -779,7 +779,7 @@
           },
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT percentile_cont(0.99) WITHIN GROUP (ORDER BY value)\nFROM otel_metrics_gauge\nWHERE metric_name = 'system.memory.utilization'\n  AND attributes->>'state' = 'used'\n  AND $__timeFilter(\"timestamp\")\n  AND resource_attributes->>'host.name' = '$host'"
+          "rawSql": "SELECT percentile_cont(0.99) WITHIN GROUP (ORDER BY value)\nFROM otel_metrics_gauge\nWHERE metric_name = 'system.memory.utilization'\n  AND attributes->>'state' = 'used'\n  AND $__timeFilter(\"timestamp\")\n  AND resource_attributes->>'host.name' = coalesce(nullif('$host',''), 'CSE-01')"
         }
       ]
     },
@@ -841,7 +841,7 @@
           },
           "format": "table",
           "rawQuery": true,
-          "rawSql": "WITH d AS (\n  SELECT max(value) FILTER (WHERE attributes->>'state'='free' AND attributes->>'mountpoint'='/') AS free_b,\n         max(value) FILTER (WHERE attributes->>'state'='used' AND attributes->>'mountpoint'='/') AS used_b\n  FROM otel_metrics_sum\n  WHERE metric_name='system.filesystem.usage' AND resource_attributes->>'host.name' = '$host' AND \"timestamp\" > make_timestamp_ns((extract(epoch from now()) - 300)::bigint * 1000000000)\n)\nSELECT free_b::double precision / NULLIF(free_b+used_b,0) FROM d"
+          "rawSql": "WITH d AS (\n  SELECT max(value) FILTER (WHERE attributes->>'state'='free' AND attributes->>'mountpoint'='/') AS free_b,\n         max(value) FILTER (WHERE attributes->>'state'='used' AND attributes->>'mountpoint'='/') AS used_b\n  FROM otel_metrics_sum\n  WHERE metric_name='system.filesystem.usage' AND resource_attributes->>'host.name' = coalesce(nullif('$host',''), 'CSE-01') AND \"timestamp\" > make_timestamp_ns((extract(epoch from now()) - 300)::bigint * 1000000000)\n)\nSELECT free_b::double precision / NULLIF(free_b+used_b,0) FROM d"
         }
       ]
     },
@@ -894,7 +894,7 @@
           },
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT value FROM otel_metrics_gauge\nWHERE metric_name='system.cpu.load_average.1m' AND resource_attributes->>'host.name' = '$host'\nORDER BY \"timestamp\" DESC LIMIT 1"
+          "rawSql": "SELECT value FROM otel_metrics_gauge\nWHERE metric_name='system.cpu.load_average.1m' AND resource_attributes->>'host.name' = coalesce(nullif('$host',''), 'CSE-01')\nORDER BY \"timestamp\" DESC LIMIT 1"
         }
       ]
     },
@@ -962,7 +962,7 @@
           },
           "format": "time_series",
           "rawQuery": true,
-          "rawSql": "SELECT $__timeGroupAlias(\"timestamp\", $__interval),\n       'cpu_busy' AS metric,\n       1 - avg(value) AS value\nFROM otel_metrics_gauge\nWHERE metric_name = 'system.cpu.utilization'\n  AND attributes->>'state' = 'idle'\n  AND resource_attributes->>'host.name' = '$host'\n  AND $__timeFilter(\"timestamp\")\nGROUP BY 1, 2 ORDER BY 1"
+          "rawSql": "SELECT $__timeGroupAlias(\"timestamp\", $__interval),\n       'cpu_busy' AS metric,\n       1 - avg(value) AS value\nFROM otel_metrics_gauge\nWHERE metric_name = 'system.cpu.utilization'\n  AND attributes->>'state' = 'idle'\n  AND resource_attributes->>'host.name' = coalesce(nullif('$host',''), 'CSE-01')\n  AND $__timeFilter(\"timestamp\")\nGROUP BY 1, 2 ORDER BY 1"
         }
       ]
     },
@@ -1015,7 +1015,7 @@
           },
           "format": "time_series",
           "rawQuery": true,
-          "rawSql": "SELECT $__timeGroupAlias(\"timestamp\", $__interval),\n       'mem_used' AS metric,\n       avg(value) AS value\nFROM otel_metrics_gauge\nWHERE metric_name = 'system.memory.utilization'\n  AND attributes->>'state' = 'used'\n  AND resource_attributes->>'host.name' = '$host'\n  AND $__timeFilter(\"timestamp\")\nGROUP BY 1, 2 ORDER BY 1"
+          "rawSql": "SELECT $__timeGroupAlias(\"timestamp\", $__interval),\n       'mem_used' AS metric,\n       avg(value) AS value\nFROM otel_metrics_gauge\nWHERE metric_name = 'system.memory.utilization'\n  AND attributes->>'state' = 'used'\n  AND resource_attributes->>'host.name' = coalesce(nullif('$host',''), 'CSE-01')\n  AND $__timeFilter(\"timestamp\")\nGROUP BY 1, 2 ORDER BY 1"
         }
       ]
     },
@@ -1067,7 +1067,7 @@
           },
           "format": "time_series",
           "rawQuery": true,
-          "rawSql": "SELECT $__timeGroupAlias(\"timestamp\", $__interval),\n       metric_name AS metric,\n       avg(value) AS value\nFROM otel_metrics_gauge\nWHERE metric_name IN ('system.cpu.load_average.1m','system.cpu.load_average.5m','system.cpu.load_average.15m')\n  AND resource_attributes->>'host.name' = '$host' AND $__timeFilter(\"timestamp\")\nGROUP BY 1, 2 ORDER BY 1"
+          "rawSql": "SELECT $__timeGroupAlias(\"timestamp\", $__interval),\n       metric_name AS metric,\n       avg(value) AS value\nFROM otel_metrics_gauge\nWHERE metric_name IN ('system.cpu.load_average.1m','system.cpu.load_average.5m','system.cpu.load_average.15m')\n  AND resource_attributes->>'host.name' = coalesce(nullif('$host',''), 'CSE-01') AND $__timeFilter(\"timestamp\")\nGROUP BY 1, 2 ORDER BY 1"
         }
       ]
     },
@@ -1119,7 +1119,7 @@
           },
           "format": "time_series",
           "rawQuery": true,
-          "rawSql": "SELECT $__timeGroupAlias(\"timestamp\", $__interval),\n       attributes->>'direction' AS metric,\n       sum(value) AS value\nFROM otel_metrics_sum\nWHERE metric_name = 'system.network.io'\n  AND resource_attributes->>'host.name' = '$host' AND $__timeFilter(\"timestamp\")\nGROUP BY 1, 2 ORDER BY 1"
+          "rawSql": "SELECT $__timeGroupAlias(\"timestamp\", $__interval),\n       attributes->>'direction' AS metric,\n       sum(value) AS value\nFROM otel_metrics_sum\nWHERE metric_name = 'system.network.io'\n  AND resource_attributes->>'host.name' = coalesce(nullif('$host',''), 'CSE-01') AND $__timeFilter(\"timestamp\")\nGROUP BY 1, 2 ORDER BY 1"
         }
       ]
     },
@@ -1176,7 +1176,7 @@
           },
           "format": "table",
           "rawQuery": true,
-          "rawSql": "WITH latest AS (\n  SELECT resource_attributes->>'process.executable.name' AS process,\n         resource_attributes->>'process.pid' AS pid,\n         resource_attributes->>'process.owner' AS owner,\n         attributes->>'state' AS state,\n         value,\n         \"timestamp\",\n         row_number() OVER (\n           PARTITION BY resource_attributes->>'process.pid', attributes->>'state'\n           ORDER BY \"timestamp\" DESC\n         ) AS rn\n  FROM otel_metrics_gauge\n  WHERE metric_name = 'process.cpu.utilization'\n    AND resource_attributes->>'host.name' = '$host'\n    AND \"timestamp\" > make_timestamp_ns((extract(epoch from now()) - 300)::bigint * 1000000000)\n)\nSELECT process,\n       pid,\n       owner,\n       sum(value) FILTER (WHERE state IN ('user','system')) AS cpu_util,\n       max(\"timestamp\") AS last_seen\nFROM latest\nWHERE rn = 1 AND process IS NOT NULL\nGROUP BY process, pid, owner\nORDER BY cpu_util DESC NULLS LAST\nLIMIT 25"
+          "rawSql": "WITH latest AS (\n  SELECT resource_attributes->>'process.executable.name' AS process,\n         resource_attributes->>'process.pid' AS pid,\n         resource_attributes->>'process.owner' AS owner,\n         attributes->>'state' AS state,\n         value,\n         \"timestamp\",\n         row_number() OVER (\n           PARTITION BY resource_attributes->>'process.pid', attributes->>'state'\n           ORDER BY \"timestamp\" DESC\n         ) AS rn\n  FROM otel_metrics_gauge\n  WHERE metric_name = 'process.cpu.utilization'\n    AND resource_attributes->>'host.name' = coalesce(nullif('$host',''), 'CSE-01')\n    AND \"timestamp\" > make_timestamp_ns((extract(epoch from now()) - 300)::bigint * 1000000000)\n)\nSELECT process,\n       pid,\n       owner,\n       sum(value) FILTER (WHERE state IN ('user','system')) AS cpu_util,\n       max(\"timestamp\") AS last_seen\nFROM latest\nWHERE rn = 1 AND process IS NOT NULL\nGROUP BY process, pid, owner\nORDER BY cpu_util DESC NULLS LAST\nLIMIT 25"
         }
       ]
     },
@@ -1257,7 +1257,7 @@
           },
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT attributes->>'mountpoint' AS mount,\n       attributes->>'device' AS device,\n       attributes->>'type' AS fstype,\n       max(value) FILTER (WHERE attributes->>'state'='free') AS free_bytes,\n       max(value) FILTER (WHERE attributes->>'state'='used') AS used_bytes,\n       max(value) FILTER (WHERE attributes->>'state'='free')::double precision\n         / NULLIF(max(value) FILTER (WHERE attributes->>'state'='free')\n                + max(value) FILTER (WHERE attributes->>'state'='used'),0) AS free_ratio\nFROM otel_metrics_sum\nWHERE metric_name='system.filesystem.usage' AND resource_attributes->>'host.name' = '$host' AND \"timestamp\" > make_timestamp_ns((extract(epoch from now()) - 300)::bigint * 1000000000)\nGROUP BY 1,2,3\nORDER BY free_ratio ASC NULLS LAST"
+          "rawSql": "SELECT attributes->>'mountpoint' AS mount,\n       attributes->>'device' AS device,\n       attributes->>'type' AS fstype,\n       max(value) FILTER (WHERE attributes->>'state'='free') AS free_bytes,\n       max(value) FILTER (WHERE attributes->>'state'='used') AS used_bytes,\n       max(value) FILTER (WHERE attributes->>'state'='free')::double precision\n         / NULLIF(max(value) FILTER (WHERE attributes->>'state'='free')\n                + max(value) FILTER (WHERE attributes->>'state'='used'),0) AS free_ratio\nFROM otel_metrics_sum\nWHERE metric_name='system.filesystem.usage' AND resource_attributes->>'host.name' = coalesce(nullif('$host',''), 'CSE-01') AND \"timestamp\" > make_timestamp_ns((extract(epoch from now()) - 300)::bigint * 1000000000)\nGROUP BY 1,2,3\nORDER BY free_ratio ASC NULLS LAST"
         }
       ]
     },
@@ -1309,7 +1309,7 @@
           },
           "format": "time_series",
           "rawQuery": true,
-          "rawSql": "SELECT $__timeGroupAlias(\"timestamp\", $__interval),\n       resource_attributes->>'process.executable.name' AS metric,\n       sum(value) FILTER (WHERE attributes->>'state' IN ('user','system')) AS value\nFROM otel_metrics_gauge\nWHERE metric_name = 'process.cpu.utilization'\n  AND resource_attributes->>'host.name' = '$host'\n  AND $__timeFilter(\"timestamp\")\n  AND resource_attributes->>'process.executable.name' IS NOT NULL\nGROUP BY 1, 2\nORDER BY 1"
+          "rawSql": "SELECT $__timeGroupAlias(\"timestamp\", $__interval),\n       resource_attributes->>'process.executable.name' AS metric,\n       sum(value) FILTER (WHERE attributes->>'state' IN ('user','system')) AS value\nFROM otel_metrics_gauge\nWHERE metric_name = 'process.cpu.utilization'\n  AND resource_attributes->>'host.name' = coalesce(nullif('$host',''), 'CSE-01')\n  AND $__timeFilter(\"timestamp\")\n  AND resource_attributes->>'process.executable.name' IS NOT NULL\nGROUP BY 1, 2\nORDER BY 1"
         }
       ]
     },
@@ -1373,7 +1373,7 @@
           },
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT \"timestamp\",\n       coalesce(resource_attributes->>'service.name', service_name) AS service,\n       coalesce(severity_text, '') AS severity,\n       coalesce(log_attributes->>'log.kind', '') AS log_kind,\n       left(body, 4000) AS body\nFROM otel_logs\nWHERE resource_attributes->>'host.name' = '$host'\n  AND $__timeFilter(\"timestamp\")\n  AND (\n    log_attributes->>'log.kind' = 'error'\n    OR log_attributes->>'exception.type' IS NOT NULL\n    OR upper(coalesce(severity_text, '')) IN ('ERROR', 'FATAL', 'CRITICAL')\n    OR severity_number >= 17\n  )\n  AND NOT (\n    log_attributes->>'backup.status' = 'success'\n    OR log_attributes->>'event.name' = 'backup.success'\n    OR log_attributes->>'event.name' = 'otel-backup-event'\n  )\nORDER BY \"timestamp\" DESC\nLIMIT 100"
+          "rawSql": "SELECT \"timestamp\",\n       coalesce(resource_attributes->>'service.name', service_name) AS service,\n       coalesce(severity_text, '') AS severity,\n       coalesce(log_attributes->>'log.kind', '') AS log_kind,\n       left(body, 4000) AS body\nFROM otel_logs\nWHERE resource_attributes->>'host.name' = coalesce(nullif('$host',''), 'CSE-01')\n  AND $__timeFilter(\"timestamp\")\n  AND (\n    log_attributes->>'log.kind' = 'error'\n    OR log_attributes->>'exception.type' IS NOT NULL\n    OR upper(coalesce(severity_text, '')) IN ('ERROR', 'FATAL', 'CRITICAL')\n    OR severity_number >= 17\n  )\n  AND NOT (\n    log_attributes->>'backup.status' = 'success'\n    OR log_attributes->>'event.name' = 'backup.success'\n    OR log_attributes->>'event.name' = 'otel-backup-event'\n  )\nORDER BY \"timestamp\" DESC\nLIMIT 100"
         }
       ]
     }
@@ -1399,12 +1399,12 @@
           "type": "grafana-postgresql-datasource",
           "uid": "serenedb"
         },
-        "definition": "SELECT DISTINCT resource_attributes->>'host.name' AS __text, resource_attributes->>'host.name' AS __value FROM otel_metrics_gauge WHERE resource_attributes->>'host.name' IS NOT NULL ORDER BY 1",
+        "definition": "SELECT DISTINCT resource_attributes->>'host.name' AS __text, resource_attributes->>'host.name' AS __value FROM otel_metrics_gauge WHERE metric_name = 'system.uptime' AND resource_attributes->>'host.name' IS NOT NULL AND \"timestamp\" > make_timestamp_ns((extract(epoch from now()) - 900)::bigint * 1000000000) ORDER BY 1",
         "includeAll": false,
         "label": "Host",
         "multi": false,
         "name": "host",
-        "query": "SELECT DISTINCT resource_attributes->>'host.name' AS __text, resource_attributes->>'host.name' AS __value FROM otel_metrics_gauge WHERE resource_attributes->>'host.name' IS NOT NULL ORDER BY 1",
+        "query": "SELECT DISTINCT resource_attributes->>'host.name' AS __text, resource_attributes->>'host.name' AS __value FROM otel_metrics_gauge WHERE metric_name = 'system.uptime' AND resource_attributes->>'host.name' IS NOT NULL AND \"timestamp\" > make_timestamp_ns((extract(epoch from now()) - 900)::bigint * 1000000000) ORDER BY 1",
         "refresh": 2,
         "type": "query",
         "sort": 1

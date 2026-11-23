@@ -25,17 +25,17 @@
       "title": "Host Detail",
       "type": "link",
       "icon": "dashboard",
-      "url": "/d/cyto-server-detail/host-infrastructure-detail",
+      "url": "/d/cyto-server-detail/host-infrastructure-detail?var-host=CSE-01",
       "keepTime": true,
-      "includeVars": true
+      "includeVars": false
     },
     {
       "title": "Service Detail",
       "type": "link",
       "icon": "dashboard",
-      "url": "/d/cyto-service-detail/service-detail",
+      "url": "/d/cyto-service-detail/service-detail?var-service=nextcloud-nextcloud",
       "keepTime": true,
-      "includeVars": true
+      "includeVars": false
     },
     {
       "title": "Backup Operations",
@@ -65,7 +65,7 @@
       },
       "options": {
         "mode": "markdown",
-        "content": "# CytoSorbents Observability \u2014 Command Center\n**Boss walkthrough:** Fleet health \u2192 pick a host \u2192 Service Detail \u2192 Backups \u2192 Incidents.\nDashboards: [Fleet](/d/cyto-fleet-infra) \u00b7 [Host Detail](/d/cyto-server-detail) \u00b7 [Service Detail](/d/cyto-service-detail) \u00b7 [Backups](/d/cyto-backups) \u00b7 [Incidents](/d/cyto-errors)"
+        "content": "# CytoSorbents Observability \u2014 Command Center\n**Boss walkthrough:** Fleet health \u2192 pick a host \u2192 Service Detail \u2192 Backups \u2192 Incidents.\nDashboards: [Fleet](/d/cyto-fleet-infra) \u00b7 [Host Detail](/d/cyto-server-detail/host-infrastructure-detail?var-host=CSE-01) \u00b7 [Service Detail](/d/cyto-service-detail/service-detail?var-service=nextcloud-nextcloud) \u00b7 [Backups](/d/cyto-backups) \u00b7 [Incidents](/d/cyto-errors)"
       }
     },
     {

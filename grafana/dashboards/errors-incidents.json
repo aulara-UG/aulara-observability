@@ -25,17 +25,17 @@
       "title": "Host Detail",
       "type": "link",
       "icon": "dashboard",
-      "url": "/d/cyto-server-detail/host-infrastructure-detail",
+      "url": "/d/cyto-server-detail/host-infrastructure-detail?var-host=CSE-01",
       "keepTime": true,
-      "includeVars": true
+      "includeVars": false
     },
     {
       "title": "Service Detail",
       "type": "link",
       "icon": "dashboard",
-      "url": "/d/cyto-service-detail/service-detail",
+      "url": "/d/cyto-service-detail/service-detail?var-service=nextcloud-nextcloud",
       "keepTime": true,
-      "includeVars": true
+      "includeVars": false
     },
     {
       "title": "Backup Operations",
@@ -570,12 +570,12 @@
           "type": "grafana-postgresql-datasource",
           "uid": "serenedb"
         },
-        "definition": "SELECT DISTINCT resource_attributes->>'host.name' AS __text, resource_attributes->>'host.name' AS __value FROM otel_metrics_gauge WHERE resource_attributes->>'host.name' IS NOT NULL ORDER BY 1",
+        "definition": "SELECT DISTINCT resource_attributes->>'host.name' AS __text, resource_attributes->>'host.name' AS __value FROM otel_metrics_gauge WHERE metric_name = 'system.uptime' AND resource_attributes->>'host.name' IS NOT NULL AND \"timestamp\" > make_timestamp_ns((extract(epoch from now()) - 900)::bigint * 1000000000) ORDER BY 1",
         "includeAll": true,
         "label": "Host",
         "multi": true,
         "name": "host",
-        "query": "SELECT DISTINCT resource_attributes->>'host.name' AS __text, resource_attributes->>'host.name' AS __value FROM otel_metrics_gauge WHERE resource_attributes->>'host.name' IS NOT NULL ORDER BY 1",
+        "query": "SELECT DISTINCT resource_attributes->>'host.name' AS __text, resource_attributes->>'host.name' AS __value FROM otel_metrics_gauge WHERE metric_name = 'system.uptime' AND resource_attributes->>'host.name' IS NOT NULL AND \"timestamp\" > make_timestamp_ns((extract(epoch from now()) - 900)::bigint * 1000000000) ORDER BY 1",
         "refresh": 2,
         "type": "query",
         "sort": 1
@@ -590,12 +590,12 @@
           "type": "grafana-postgresql-datasource",
           "uid": "serenedb"
         },
-        "definition": "SELECT DISTINCT coalesce(resource_attributes->>'service.name', service_name) AS __text, coalesce(resource_attributes->>'service.name', service_name) AS __value FROM otel_logs WHERE coalesce(resource_attributes->>'service.name', service_name) IS NOT NULL AND (TRUE) ORDER BY 1",
+        "definition": "SELECT DISTINCT coalesce(resource_attributes->>'service.name', service_name) AS __text, coalesce(resource_attributes->>'service.name', service_name) AS __value FROM otel_logs WHERE coalesce(resource_attributes->>'service.name', service_name) IS NOT NULL AND \"timestamp\" > make_timestamp_ns((extract(epoch from now()) - 86400)::bigint * 1000000000) AND (TRUE) ORDER BY 1",
         "includeAll": true,
         "label": "Service",
         "multi": true,
         "name": "service",
-        "query": "SELECT DISTINCT coalesce(resource_attributes->>'service.name', service_name) AS __text, coalesce(resource_attributes->>'service.name', service_name) AS __value FROM otel_logs WHERE coalesce(resource_attributes->>'service.name', service_name) IS NOT NULL AND (TRUE) ORDER BY 1",
+        "query": "SELECT DISTINCT coalesce(resource_attributes->>'service.name', service_name) AS __text, coalesce(resource_attributes->>'service.name', service_name) AS __value FROM otel_logs WHERE coalesce(resource_attributes->>'service.name', service_name) IS NOT NULL AND \"timestamp\" > make_timestamp_ns((extract(epoch from now()) - 86400)::bigint * 1000000000) AND (TRUE) ORDER BY 1",
         "refresh": 2,
         "type": "query",
         "sort": 1

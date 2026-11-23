@@ -333,18 +333,26 @@ def panel_text(pid, title, content, x, y, w=24, h=3):
     }
 
 
+DEFAULT_HOST = "CSE-01"
+DEFAULT_SERVICE = "nextcloud-nextcloud"
+
+
 def host_var(multi=True, include_all=True, name="host"):
+    # Live hosts only (exclude migrated stale hosts with no fresh uptime).
     q = (
         "SELECT DISTINCT resource_attributes->>'host.name' AS __text, "
         "resource_attributes->>'host.name' AS __value FROM otel_metrics_gauge "
-        "WHERE resource_attributes->>'host.name' IS NOT NULL ORDER BY 1"
+        "WHERE metric_name = 'system.uptime' "
+        "AND resource_attributes->>'host.name' IS NOT NULL "
+        'AND "timestamp" > make_timestamp_ns((extract(epoch from now()) - 900)::bigint * 1000000000) '
+        "ORDER BY 1"
     )
+    if include_all:
+        current = {"selected": True, "text": "All", "value": "$__all"}
+    else:
+        current = {"selected": True, "text": DEFAULT_HOST, "value": DEFAULT_HOST}
     return {
-        "current": {
-            "selected": True,
-            "text": "All" if include_all else "CSE-01",
-            "value": "$__all" if include_all else "CSE-01",
-        },
+        "current": current,
         "datasource": DS,
         "definition": q,
         "includeAll": include_all,
@@ -362,15 +370,21 @@ def service_var(name="service", multi=True, include_all=True, where="TRUE"):
     q = (
         "SELECT DISTINCT coalesce(resource_attributes->>'service.name', service_name) AS __text, "
         "coalesce(resource_attributes->>'service.name', service_name) AS __value "
-        f"FROM otel_logs WHERE coalesce(resource_attributes->>'service.name', service_name) IS NOT NULL "
+        "FROM otel_logs "
+        "WHERE coalesce(resource_attributes->>'service.name', service_name) IS NOT NULL "
+        f'AND "timestamp" > make_timestamp_ns((extract(epoch from now()) - 86400)::bigint * 1000000000) '
         f"AND ({where}) ORDER BY 1"
     )
-    return {
-        "current": {
+    if include_all:
+        current = {"selected": True, "text": "All", "value": "$__all"}
+    else:
+        current = {
             "selected": True,
-            "text": "All" if include_all else "",
-            "value": "$__all" if include_all else "",
-        },
+            "text": DEFAULT_SERVICE,
+            "value": DEFAULT_SERVICE,
+        }
+    return {
+        "current": current,
         "datasource": DS,
         "definition": q,
         "includeAll": include_all,
@@ -384,6 +398,8 @@ def service_var(name="service", multi=True, include_all=True, where="TRUE"):
     }
 
 
+# Never includeVars on Host/Service Detail links from pages that lack those vars —
+# Grafana would open them with empty $host/$service and every panel shows No data.
 LINKS_COMMON = [
     {
         "title": "Command Center",
@@ -403,17 +419,17 @@ LINKS_COMMON = [
         "title": "Host Detail",
         "type": "link",
         "icon": "dashboard",
-        "url": "/d/cyto-server-detail/host-infrastructure-detail",
+        "url": f"/d/cyto-server-detail/host-infrastructure-detail?var-host={DEFAULT_HOST}",
         "keepTime": True,
-        "includeVars": True,
+        "includeVars": False,
     },
     {
         "title": "Service Detail",
         "type": "link",
         "icon": "dashboard",
-        "url": "/d/cyto-service-detail/service-detail",
+        "url": f"/d/cyto-service-detail/service-detail?var-service={DEFAULT_SERVICE}",
         "keepTime": True,
-        "includeVars": True,
+        "includeVars": False,
     },
     {
         "title": "Backup Operations",
@@ -473,9 +489,9 @@ def build_command_center():
         panel_text(
             1,
             "",
-            """# CytoSorbents Observability — Command Center
+            f"""# CytoSorbents Observability — Command Center
 **Boss walkthrough:** Fleet health → pick a host → Service Detail → Backups → Incidents.
-Dashboards: [Fleet](/d/cyto-fleet-infra) · [Host Detail](/d/cyto-server-detail) · [Service Detail](/d/cyto-service-detail) · [Backups](/d/cyto-backups) · [Incidents](/d/cyto-errors)""",
+Dashboards: [Fleet](/d/cyto-fleet-infra) · [Host Detail](/d/cyto-server-detail/host-infrastructure-detail?var-host={DEFAULT_HOST}) · [Service Detail](/d/cyto-service-detail/service-detail?var-service={DEFAULT_SERVICE}) · [Backups](/d/cyto-backups) · [Incidents](/d/cyto-errors)""",
             0,
             0,
             h=3,
@@ -1049,7 +1065,11 @@ GROUP BY 1, 2 ORDER BY 1""",
 
 
 def build_host_detail():
-    host_f = "resource_attributes->>'host.name' = '$host'"
+    # Guard empty $host (e.g. stale bookmark / bad includeVars) so panels never blank out.
+    host_f = (
+        "resource_attributes->>'host.name' = "
+        f"coalesce(nullif('$host',''), '{DEFAULT_HOST}')"
+    )
     panels = [
         panel_stat(
             1,
@@ -1413,7 +1433,8 @@ LIMIT 100""",
 
 
 def build_service_detail():
-    svc = "coalesce(resource_attributes->>'service.name', service_name) = '$service'"
+    svc_name = f"coalesce(nullif('$service',''), '{DEFAULT_SERVICE}')"
+    svc = f"coalesce(resource_attributes->>'service.name', service_name) = {svc_name}"
     panels = [
         panel_stat(
             1,
@@ -1479,7 +1500,7 @@ FROM otel_logs WHERE {svc} AND $__timeFilter("timestamp")""",
 SELECT coalesce(sum(value) FILTER (WHERE attributes->>'state' IN ('user','system')), 0)
 FROM otel_metrics_gauge
 WHERE metric_name = 'process.cpu.utilization'
-  AND resource_attributes->>'service.name' = '$service'
+  AND resource_attributes->>'service.name' = {svc_name}
   AND {FRESH_WHERE}
 """.strip(),
             15,
@@ -1495,7 +1516,7 @@ WHERE metric_name = 'process.cpu.utilization'
 SELECT max(value)
 FROM otel_metrics_gauge
 WHERE metric_name = 'process.memory.utilization'
-  AND resource_attributes->>'service.name' = '$service'
+  AND resource_attributes->>'service.name' = {svc_name}
   AND {FRESH_WHERE}
 """.strip(),
             18,
@@ -1510,7 +1531,7 @@ WHERE metric_name = 'process.memory.utilization'
 SELECT max(value)
 FROM otel_metrics_gauge
 WHERE metric_name = 'process.uptime'
-  AND resource_attributes->>'service.name' = '$service'
+  AND resource_attributes->>'service.name' = {svc_name}
   AND {FRESH_WHERE}
 """.strip(),
             21,
@@ -1575,7 +1596,7 @@ SELECT $__timeGroupAlias("timestamp", $__interval),
        sum(value) FILTER (WHERE attributes->>'state' IN ('user','system')) AS value
 FROM otel_metrics_gauge
 WHERE metric_name = 'process.cpu.utilization'
-  AND resource_attributes->>'service.name' = '$service'
+  AND resource_attributes->>'service.name' = {svc_name}
   AND $__timeFilter("timestamp")
 GROUP BY 1, 2 ORDER BY 1
 """.strip(),
@@ -1593,7 +1614,7 @@ SELECT $__timeGroupAlias("timestamp", $__interval),
        avg(value) AS value
 FROM otel_metrics_gauge
 WHERE metric_name = 'process.memory.utilization'
-  AND resource_attributes->>'service.name' = '$service'
+  AND resource_attributes->>'service.name' = {svc_name}
   AND $__timeFilter("timestamp")
 GROUP BY 1, 2 ORDER BY 1
 """.strip(),
