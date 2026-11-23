@@ -119,7 +119,7 @@
           },
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT CASE WHEN max(\"timestamp\") IS NOT NULL\n  AND epoch_ns(max(\"timestamp\")) > (extract(epoch from now()) - 300) * 1000000000 THEN 'UP' ELSE 'DOWN' END\nFROM otel_logs WHERE coalesce(resource_attributes->>'service.name', service_name) = coalesce(nullif('$service',''), 'nextcloud-nextcloud')"
+          "rawSql": "SELECT CASE WHEN max(\"timestamp\") IS NOT NULL\n  AND epoch_ns(max(\"timestamp\")) > (extract(epoch from now()) - 300) * 1000000000 THEN 'UP' ELSE 'DOWN' END\nFROM otel_logs WHERE coalesce(resource_attributes->>'service.name', service_name) = ${service:sqlstring}"
         }
       ]
     },
@@ -172,7 +172,7 @@
           },
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT count(*) FROM otel_logs\nWHERE coalesce(resource_attributes->>'service.name', service_name) = coalesce(nullif('$service',''), 'nextcloud-nextcloud') AND $__timeFilter(\"timestamp\")"
+          "rawSql": "SELECT count(*) FROM otel_logs\nWHERE coalesce(resource_attributes->>'service.name', service_name) = ${service:sqlstring} AND $__timeFilter(\"timestamp\")"
         }
       ]
     },
@@ -237,7 +237,7 @@
           },
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT count(*) FROM otel_logs\nWHERE coalesce(resource_attributes->>'service.name', service_name) = coalesce(nullif('$service',''), 'nextcloud-nextcloud') AND $__timeFilter(\"timestamp\") AND (\n    log_attributes->>'log.kind' = 'error'\n    OR log_attributes->>'exception.type' IS NOT NULL\n    OR upper(coalesce(severity_text, '')) IN ('ERROR', 'FATAL', 'CRITICAL')\n    OR severity_number >= 17\n  )\n  AND NOT (\n    log_attributes->>'backup.status' = 'success'\n    OR log_attributes->>'event.name' = 'backup.success'\n    OR log_attributes->>'event.name' = 'otel-backup-event'\n  )"
+          "rawSql": "SELECT count(*) FROM otel_logs\nWHERE coalesce(resource_attributes->>'service.name', service_name) = ${service:sqlstring} AND $__timeFilter(\"timestamp\") AND (\n    log_attributes->>'log.kind' = 'error'\n    OR log_attributes->>'exception.type' IS NOT NULL\n    OR upper(coalesce(severity_text, '')) IN ('ERROR', 'FATAL', 'CRITICAL')\n    OR severity_number >= 17\n  )\n  AND NOT (\n    log_attributes->>'backup.status' = 'success'\n    OR log_attributes->>'event.name' = 'backup.success'\n    OR log_attributes->>'event.name' = 'otel-backup-event'\n  )"
         }
       ]
     },
@@ -299,7 +299,7 @@
           },
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT CASE WHEN count(*) = 0 THEN 0\n  ELSE count(*) FILTER (WHERE (\n    log_attributes->>'log.kind' = 'error'\n    OR log_attributes->>'exception.type' IS NOT NULL\n    OR upper(coalesce(severity_text, '')) IN ('ERROR', 'FATAL', 'CRITICAL')\n    OR severity_number >= 17\n  )\n  AND NOT (\n    log_attributes->>'backup.status' = 'success'\n    OR log_attributes->>'event.name' = 'backup.success'\n    OR log_attributes->>'event.name' = 'otel-backup-event'\n  ))::double precision / count(*)\nEND\nFROM otel_logs WHERE coalesce(resource_attributes->>'service.name', service_name) = coalesce(nullif('$service',''), 'nextcloud-nextcloud') AND $__timeFilter(\"timestamp\")"
+          "rawSql": "SELECT CASE WHEN count(*) = 0 THEN 0\n  ELSE count(*) FILTER (WHERE (\n    log_attributes->>'log.kind' = 'error'\n    OR log_attributes->>'exception.type' IS NOT NULL\n    OR upper(coalesce(severity_text, '')) IN ('ERROR', 'FATAL', 'CRITICAL')\n    OR severity_number >= 17\n  )\n  AND NOT (\n    log_attributes->>'backup.status' = 'success'\n    OR log_attributes->>'event.name' = 'backup.success'\n    OR log_attributes->>'event.name' = 'otel-backup-event'\n  ))::double precision / count(*)\nEND\nFROM otel_logs WHERE coalesce(resource_attributes->>'service.name', service_name) = ${service:sqlstring} AND $__timeFilter(\"timestamp\")"
         }
       ]
     },
@@ -352,7 +352,7 @@
           },
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT count(DISTINCT resource_attributes->>'host.name')\nFROM otel_logs WHERE coalesce(resource_attributes->>'service.name', service_name) = coalesce(nullif('$service',''), 'nextcloud-nextcloud') AND $__timeFilter(\"timestamp\")"
+          "rawSql": "SELECT count(DISTINCT resource_attributes->>'host.name')\nFROM otel_logs WHERE coalesce(resource_attributes->>'service.name', service_name) = ${service:sqlstring} AND $__timeFilter(\"timestamp\")"
         }
       ]
     },
@@ -406,7 +406,7 @@
           },
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT coalesce(sum(value) FILTER (WHERE attributes->>'state' IN ('user','system')), 0)\nFROM otel_metrics_gauge\nWHERE metric_name = 'process.cpu.utilization'\n  AND resource_attributes->>'service.name' = coalesce(nullif('$service',''), 'nextcloud-nextcloud')\n  AND \"timestamp\" > make_timestamp_ns((extract(epoch from now()) - 300)::bigint * 1000000000)"
+          "rawSql": "SELECT coalesce(sum(value) FILTER (WHERE attributes->>'state' IN ('user','system')), 0)\nFROM otel_metrics_gauge\nWHERE metric_name = 'process.cpu.utilization'\n  AND resource_attributes->>'service.name' = ${service:sqlstring}\n  AND \"timestamp\" > make_timestamp_ns((extract(epoch from now()) - 300)::bigint * 1000000000)"
         }
       ]
     },
@@ -460,7 +460,7 @@
           },
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT max(value)\nFROM otel_metrics_gauge\nWHERE metric_name = 'process.memory.utilization'\n  AND resource_attributes->>'service.name' = coalesce(nullif('$service',''), 'nextcloud-nextcloud')\n  AND \"timestamp\" > make_timestamp_ns((extract(epoch from now()) - 300)::bigint * 1000000000)"
+          "rawSql": "SELECT max(value)\nFROM otel_metrics_gauge\nWHERE metric_name = 'process.memory.utilization'\n  AND resource_attributes->>'service.name' = ${service:sqlstring}\n  AND \"timestamp\" > make_timestamp_ns((extract(epoch from now()) - 300)::bigint * 1000000000)"
         }
       ]
     },
@@ -514,7 +514,7 @@
           },
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT max(value)\nFROM otel_metrics_gauge\nWHERE metric_name = 'process.uptime'\n  AND resource_attributes->>'service.name' = coalesce(nullif('$service',''), 'nextcloud-nextcloud')\n  AND \"timestamp\" > make_timestamp_ns((extract(epoch from now()) - 300)::bigint * 1000000000)"
+          "rawSql": "SELECT max(value)\nFROM otel_metrics_gauge\nWHERE metric_name = 'process.uptime'\n  AND resource_attributes->>'service.name' = ${service:sqlstring}\n  AND \"timestamp\" > make_timestamp_ns((extract(epoch from now()) - 300)::bigint * 1000000000)"
         }
       ]
     },
@@ -624,7 +624,7 @@
           },
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT resource_attributes->>'host.name' AS host,\n       count(*) AS log_lines,\n       count(*) FILTER (WHERE (\n    log_attributes->>'log.kind' = 'error'\n    OR log_attributes->>'exception.type' IS NOT NULL\n    OR upper(coalesce(severity_text, '')) IN ('ERROR', 'FATAL', 'CRITICAL')\n    OR severity_number >= 17\n  )\n  AND NOT (\n    log_attributes->>'backup.status' = 'success'\n    OR log_attributes->>'event.name' = 'backup.success'\n    OR log_attributes->>'event.name' = 'otel-backup-event'\n  )) AS errors,\n       max(\"timestamp\") AS last_seen,\n       CASE WHEN epoch_ns(max(\"timestamp\")) > (extract(epoch from now()) - 300) * 1000000000 THEN 'UP' ELSE 'STALE' END AS status\nFROM otel_logs\nWHERE coalesce(resource_attributes->>'service.name', service_name) = coalesce(nullif('$service',''), 'nextcloud-nextcloud') AND $__timeFilter(\"timestamp\")\nGROUP BY 1\nORDER BY errors DESC, last_seen DESC"
+          "rawSql": "SELECT resource_attributes->>'host.name' AS host,\n       count(*) AS log_lines,\n       count(*) FILTER (WHERE (\n    log_attributes->>'log.kind' = 'error'\n    OR log_attributes->>'exception.type' IS NOT NULL\n    OR upper(coalesce(severity_text, '')) IN ('ERROR', 'FATAL', 'CRITICAL')\n    OR severity_number >= 17\n  )\n  AND NOT (\n    log_attributes->>'backup.status' = 'success'\n    OR log_attributes->>'event.name' = 'backup.success'\n    OR log_attributes->>'event.name' = 'otel-backup-event'\n  )) AS errors,\n       max(\"timestamp\") AS last_seen,\n       CASE WHEN epoch_ns(max(\"timestamp\")) > (extract(epoch from now()) - 300) * 1000000000 THEN 'UP' ELSE 'STALE' END AS status\nFROM otel_logs\nWHERE coalesce(resource_attributes->>'service.name', service_name) = ${service:sqlstring} AND $__timeFilter(\"timestamp\")\nGROUP BY 1\nORDER BY errors DESC, last_seen DESC"
         }
       ]
     },
@@ -679,7 +679,7 @@
           },
           "format": "time_series",
           "rawQuery": true,
-          "rawSql": "SELECT $__timeGroupAlias(\"timestamp\", $__interval),\n       'logs' AS metric,\n       count(*) AS value\nFROM otel_logs\nWHERE coalesce(resource_attributes->>'service.name', service_name) = coalesce(nullif('$service',''), 'nextcloud-nextcloud') AND $__timeFilter(\"timestamp\")\nGROUP BY 1, 2 ORDER BY 1"
+          "rawSql": "SELECT $__timeGroupAlias(\"timestamp\", $__interval),\n       'logs' AS metric,\n       count(*) AS value\nFROM otel_logs\nWHERE coalesce(resource_attributes->>'service.name', service_name) = ${service:sqlstring} AND $__timeFilter(\"timestamp\")\nGROUP BY 1, 2 ORDER BY 1"
         }
       ]
     },
@@ -734,7 +734,7 @@
           },
           "format": "time_series",
           "rawQuery": true,
-          "rawSql": "SELECT $__timeGroupAlias(\"timestamp\", $__interval),\n       'errors' AS metric,\n       count(*) AS value\nFROM otel_logs\nWHERE coalesce(resource_attributes->>'service.name', service_name) = coalesce(nullif('$service',''), 'nextcloud-nextcloud') AND $__timeFilter(\"timestamp\") AND (\n    log_attributes->>'log.kind' = 'error'\n    OR log_attributes->>'exception.type' IS NOT NULL\n    OR upper(coalesce(severity_text, '')) IN ('ERROR', 'FATAL', 'CRITICAL')\n    OR severity_number >= 17\n  )\n  AND NOT (\n    log_attributes->>'backup.status' = 'success'\n    OR log_attributes->>'event.name' = 'backup.success'\n    OR log_attributes->>'event.name' = 'otel-backup-event'\n  )\nGROUP BY 1, 2 ORDER BY 1"
+          "rawSql": "SELECT $__timeGroupAlias(\"timestamp\", $__interval),\n       'errors' AS metric,\n       count(*) AS value\nFROM otel_logs\nWHERE coalesce(resource_attributes->>'service.name', service_name) = ${service:sqlstring} AND $__timeFilter(\"timestamp\") AND (\n    log_attributes->>'log.kind' = 'error'\n    OR log_attributes->>'exception.type' IS NOT NULL\n    OR upper(coalesce(severity_text, '')) IN ('ERROR', 'FATAL', 'CRITICAL')\n    OR severity_number >= 17\n  )\n  AND NOT (\n    log_attributes->>'backup.status' = 'success'\n    OR log_attributes->>'event.name' = 'backup.success'\n    OR log_attributes->>'event.name' = 'otel-backup-event'\n  )\nGROUP BY 1, 2 ORDER BY 1"
         }
       ]
     },
@@ -786,7 +786,7 @@
           },
           "format": "time_series",
           "rawQuery": true,
-          "rawSql": "SELECT $__timeGroupAlias(\"timestamp\", $__interval),\n       coalesce(resource_attributes->>'process.executable.name', 'process') AS metric,\n       sum(value) FILTER (WHERE attributes->>'state' IN ('user','system')) AS value\nFROM otel_metrics_gauge\nWHERE metric_name = 'process.cpu.utilization'\n  AND resource_attributes->>'service.name' = coalesce(nullif('$service',''), 'nextcloud-nextcloud')\n  AND $__timeFilter(\"timestamp\")\nGROUP BY 1, 2 ORDER BY 1"
+          "rawSql": "SELECT $__timeGroupAlias(\"timestamp\", $__interval),\n       coalesce(resource_attributes->>'process.executable.name', 'process') AS metric,\n       sum(value) FILTER (WHERE attributes->>'state' IN ('user','system')) AS value\nFROM otel_metrics_gauge\nWHERE metric_name = 'process.cpu.utilization'\n  AND resource_attributes->>'service.name' = ${service:sqlstring}\n  AND $__timeFilter(\"timestamp\")\nGROUP BY 1, 2 ORDER BY 1"
         }
       ]
     },
@@ -838,7 +838,7 @@
           },
           "format": "time_series",
           "rawQuery": true,
-          "rawSql": "SELECT $__timeGroupAlias(\"timestamp\", $__interval),\n       coalesce(resource_attributes->>'process.executable.name', 'process') AS metric,\n       avg(value) AS value\nFROM otel_metrics_gauge\nWHERE metric_name = 'process.memory.utilization'\n  AND resource_attributes->>'service.name' = coalesce(nullif('$service',''), 'nextcloud-nextcloud')\n  AND $__timeFilter(\"timestamp\")\nGROUP BY 1, 2 ORDER BY 1"
+          "rawSql": "SELECT $__timeGroupAlias(\"timestamp\", $__interval),\n       coalesce(resource_attributes->>'process.executable.name', 'process') AS metric,\n       avg(value) AS value\nFROM otel_metrics_gauge\nWHERE metric_name = 'process.memory.utilization'\n  AND resource_attributes->>'service.name' = ${service:sqlstring}\n  AND $__timeFilter(\"timestamp\")\nGROUP BY 1, 2 ORDER BY 1"
         }
       ]
     },
@@ -902,7 +902,7 @@
           },
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT \"timestamp\",\n       resource_attributes->>'host.name' AS host,\n       coalesce(severity_text, '') AS severity,\n       coalesce(log_attributes->>'log.kind', '') AS log_kind,\n       left(body, 4000) AS body\nFROM otel_logs\nWHERE coalesce(resource_attributes->>'service.name', service_name) = coalesce(nullif('$service',''), 'nextcloud-nextcloud') AND $__timeFilter(\"timestamp\")\nORDER BY \"timestamp\" DESC\nLIMIT 150"
+          "rawSql": "SELECT \"timestamp\",\n       resource_attributes->>'host.name' AS host,\n       coalesce(severity_text, '') AS severity,\n       coalesce(log_attributes->>'log.kind', '') AS log_kind,\n       left(body, 4000) AS body\nFROM otel_logs\nWHERE coalesce(resource_attributes->>'service.name', service_name) = ${service:sqlstring} AND $__timeFilter(\"timestamp\")\nORDER BY \"timestamp\" DESC\nLIMIT 150"
         }
       ]
     },
@@ -946,7 +946,7 @@
           },
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT \"timestamp\",\n       resource_attributes->>'host.name' AS host,\n       coalesce(severity_text, '') AS severity,\n       coalesce(trace_id, '') AS trace_id,\n       left(body, 5000) AS body\nFROM otel_logs\nWHERE coalesce(resource_attributes->>'service.name', service_name) = coalesce(nullif('$service',''), 'nextcloud-nextcloud') AND $__timeFilter(\"timestamp\") AND (\n    log_attributes->>'log.kind' = 'error'\n    OR log_attributes->>'exception.type' IS NOT NULL\n    OR upper(coalesce(severity_text, '')) IN ('ERROR', 'FATAL', 'CRITICAL')\n    OR severity_number >= 17\n  )\n  AND NOT (\n    log_attributes->>'backup.status' = 'success'\n    OR log_attributes->>'event.name' = 'backup.success'\n    OR log_attributes->>'event.name' = 'otel-backup-event'\n  )\nORDER BY \"timestamp\" DESC\nLIMIT 100"
+          "rawSql": "SELECT \"timestamp\",\n       resource_attributes->>'host.name' AS host,\n       coalesce(severity_text, '') AS severity,\n       coalesce(trace_id, '') AS trace_id,\n       left(body, 5000) AS body\nFROM otel_logs\nWHERE coalesce(resource_attributes->>'service.name', service_name) = ${service:sqlstring} AND $__timeFilter(\"timestamp\") AND (\n    log_attributes->>'log.kind' = 'error'\n    OR log_attributes->>'exception.type' IS NOT NULL\n    OR upper(coalesce(severity_text, '')) IN ('ERROR', 'FATAL', 'CRITICAL')\n    OR severity_number >= 17\n  )\n  AND NOT (\n    log_attributes->>'backup.status' = 'success'\n    OR log_attributes->>'event.name' = 'backup.success'\n    OR log_attributes->>'event.name' = 'otel-backup-event'\n  )\nORDER BY \"timestamp\" DESC\nLIMIT 100"
         }
       ]
     }
@@ -968,18 +968,54 @@
           "text": "nextcloud-nextcloud",
           "value": "nextcloud-nextcloud"
         },
-        "datasource": {
-          "type": "grafana-postgresql-datasource",
-          "uid": "serenedb"
-        },
-        "definition": "SELECT DISTINCT coalesce(resource_attributes->>'service.name', service_name) AS __text, coalesce(resource_attributes->>'service.name', service_name) AS __value FROM otel_logs WHERE coalesce(resource_attributes->>'service.name', service_name) IS NOT NULL AND \"timestamp\" > make_timestamp_ns((extract(epoch from now()) - 86400)::bigint * 1000000000) AND (TRUE) ORDER BY 1",
         "includeAll": false,
         "label": "Service",
         "multi": false,
         "name": "service",
-        "query": "SELECT DISTINCT coalesce(resource_attributes->>'service.name', service_name) AS __text, coalesce(resource_attributes->>'service.name', service_name) AS __value FROM otel_logs WHERE coalesce(resource_attributes->>'service.name', service_name) IS NOT NULL AND \"timestamp\" > make_timestamp_ns((extract(epoch from now()) - 86400)::bigint * 1000000000) AND (TRUE) ORDER BY 1",
-        "refresh": 2,
-        "type": "query",
+        "query": "nextcloud-nextcloud,cse-risk-matrix-backend,forgejo,moodle,nextcloud-db,nextcloud-redis,nextcloud-backup,openproject",
+        "type": "custom",
+        "options": [
+          {
+            "selected": true,
+            "text": "nextcloud-nextcloud",
+            "value": "nextcloud-nextcloud"
+          },
+          {
+            "selected": false,
+            "text": "cse-risk-matrix-backend",
+            "value": "cse-risk-matrix-backend"
+          },
+          {
+            "selected": false,
+            "text": "forgejo",
+            "value": "forgejo"
+          },
+          {
+            "selected": false,
+            "text": "moodle",
+            "value": "moodle"
+          },
+          {
+            "selected": false,
+            "text": "nextcloud-db",
+            "value": "nextcloud-db"
+          },
+          {
+            "selected": false,
+            "text": "nextcloud-redis",
+            "value": "nextcloud-redis"
+          },
+          {
+            "selected": false,
+            "text": "nextcloud-backup",
+            "value": "nextcloud-backup"
+          },
+          {
+            "selected": false,
+            "text": "openproject",
+            "value": "openproject"
+          }
+        ],
         "sort": 1
       }
     ]

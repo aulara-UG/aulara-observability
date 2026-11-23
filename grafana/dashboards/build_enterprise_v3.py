@@ -338,35 +338,56 @@ DEFAULT_SERVICE = "nextcloud-nextcloud"
 
 
 def host_var(multi=True, include_all=True, name="host"):
-    # Live hosts only (exclude migrated stale hosts with no fresh uptime).
-    q = (
-        "SELECT DISTINCT resource_attributes->>'host.name' AS __text, "
-        "resource_attributes->>'host.name' AS __value FROM otel_metrics_gauge "
-        "WHERE metric_name = 'system.uptime' "
-        "AND resource_attributes->>'host.name' IS NOT NULL "
-        'AND "timestamp" > make_timestamp_ns((extract(epoch from now()) - 900)::bigint * 1000000000) '
-        "ORDER BY 1"
-    )
+    # Custom (not query) so the dropdown always has values — query vars caused empty $host → No data.
+    hosts = "CSE-01,nextcloud-aio,dropbox-backup-service,litdb-dev,LitDB-AI-Agent"
     if include_all:
         current = {"selected": True, "text": "All", "value": "$__all"}
     else:
         current = {"selected": True, "text": DEFAULT_HOST, "value": DEFAULT_HOST}
     return {
         "current": current,
-        "datasource": DS,
-        "definition": q,
         "includeAll": include_all,
+        "allValue": "CSE-01,nextcloud-aio,dropbox-backup-service,litdb-dev,LitDB-AI-Agent" if include_all else None,
         "label": "Host",
         "multi": multi,
         "name": name,
-        "query": q,
-        "refresh": 2,
-        "type": "query",
+        "query": hosts,
+        "type": "custom",
+        "options": [
+            {"selected": h == DEFAULT_HOST and not include_all, "text": h, "value": h}
+            for h in hosts.split(",")
+        ],
         "sort": 1,
     }
 
 
 def service_var(name="service", multi=True, include_all=True, where="TRUE"):
+    # Prefer a stable custom list for the single-select Service Detail default.
+    # Multi/all dashboards still use a query so new services appear.
+    if not multi and not include_all:
+        services = [
+            "nextcloud-nextcloud",
+            "cse-risk-matrix-backend",
+            "forgejo",
+            "moodle",
+            "nextcloud-db",
+            "nextcloud-redis",
+            "nextcloud-backup",
+            "openproject",
+        ]
+        return {
+            "current": {"selected": True, "text": DEFAULT_SERVICE, "value": DEFAULT_SERVICE},
+            "includeAll": False,
+            "label": "Service",
+            "multi": False,
+            "name": name,
+            "query": ",".join(services),
+            "type": "custom",
+            "options": [
+                {"selected": s == DEFAULT_SERVICE, "text": s, "value": s} for s in services
+            ],
+            "sort": 1,
+        }
     q = (
         "SELECT DISTINCT coalesce(resource_attributes->>'service.name', service_name) AS __text, "
         "coalesce(resource_attributes->>'service.name', service_name) AS __value "
@@ -375,14 +396,9 @@ def service_var(name="service", multi=True, include_all=True, where="TRUE"):
         f'AND "timestamp" > make_timestamp_ns((extract(epoch from now()) - 86400)::bigint * 1000000000) '
         f"AND ({where}) ORDER BY 1"
     )
-    if include_all:
-        current = {"selected": True, "text": "All", "value": "$__all"}
-    else:
-        current = {
-            "selected": True,
-            "text": DEFAULT_SERVICE,
-            "value": DEFAULT_SERVICE,
-        }
+    current = {"selected": True, "text": "All", "value": "$__all"} if include_all else {
+        "selected": True, "text": DEFAULT_SERVICE, "value": DEFAULT_SERVICE
+    }
     return {
         "current": current,
         "datasource": DS,
@@ -392,7 +408,7 @@ def service_var(name="service", multi=True, include_all=True, where="TRUE"):
         "multi": multi,
         "name": name,
         "query": q,
-        "refresh": 2,
+        "refresh": 1,
         "type": "query",
         "sort": 1,
     }
@@ -1066,10 +1082,7 @@ GROUP BY 1, 2 ORDER BY 1""",
 
 def build_host_detail():
     # Guard empty $host (e.g. stale bookmark / bad includeVars) so panels never blank out.
-    host_f = (
-        "resource_attributes->>'host.name' = "
-        f"coalesce(nullif('$host',''), '{DEFAULT_HOST}')"
-    )
+    host_f = "resource_attributes->>'host.name' = ${host:sqlstring}"
     panels = [
         panel_stat(
             1,
@@ -1433,7 +1446,7 @@ LIMIT 100""",
 
 
 def build_service_detail():
-    svc_name = f"coalesce(nullif('$service',''), '{DEFAULT_SERVICE}')"
+    svc_name = "${service:sqlstring}"
     svc = f"coalesce(resource_attributes->>'service.name', service_name) = {svc_name}"
     panels = [
         panel_stat(

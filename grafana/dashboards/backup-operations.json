@@ -790,7 +790,7 @@
         "multi": true,
         "name": "service",
         "query": "SELECT DISTINCT coalesce(resource_attributes->>'service.name', service_name) AS __text, coalesce(resource_attributes->>'service.name', service_name) AS __value FROM otel_logs WHERE coalesce(resource_attributes->>'service.name', service_name) IS NOT NULL AND \"timestamp\" > make_timestamp_ns((extract(epoch from now()) - 86400)::bigint * 1000000000) AND (coalesce(resource_attributes->>'service.name', service_name) ILIKE '%backup%' OR log_attributes->>'log.kind' = 'backup') ORDER BY 1",
-        "refresh": 2,
+        "refresh": 1,
         "type": "query",
         "sort": 1
       }

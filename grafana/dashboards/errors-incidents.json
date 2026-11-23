@@ -566,18 +566,40 @@
           "text": "All",
           "value": "$__all"
         },
-        "datasource": {
-          "type": "grafana-postgresql-datasource",
-          "uid": "serenedb"
-        },
-        "definition": "SELECT DISTINCT resource_attributes->>'host.name' AS __text, resource_attributes->>'host.name' AS __value FROM otel_metrics_gauge WHERE metric_name = 'system.uptime' AND resource_attributes->>'host.name' IS NOT NULL AND \"timestamp\" > make_timestamp_ns((extract(epoch from now()) - 900)::bigint * 1000000000) ORDER BY 1",
         "includeAll": true,
+        "allValue": "CSE-01,nextcloud-aio,dropbox-backup-service,litdb-dev,LitDB-AI-Agent",
         "label": "Host",
         "multi": true,
         "name": "host",
-        "query": "SELECT DISTINCT resource_attributes->>'host.name' AS __text, resource_attributes->>'host.name' AS __value FROM otel_metrics_gauge WHERE metric_name = 'system.uptime' AND resource_attributes->>'host.name' IS NOT NULL AND \"timestamp\" > make_timestamp_ns((extract(epoch from now()) - 900)::bigint * 1000000000) ORDER BY 1",
-        "refresh": 2,
-        "type": "query",
+        "query": "CSE-01,nextcloud-aio,dropbox-backup-service,litdb-dev,LitDB-AI-Agent",
+        "type": "custom",
+        "options": [
+          {
+            "selected": false,
+            "text": "CSE-01",
+            "value": "CSE-01"
+          },
+          {
+            "selected": false,
+            "text": "nextcloud-aio",
+            "value": "nextcloud-aio"
+          },
+          {
+            "selected": false,
+            "text": "dropbox-backup-service",
+            "value": "dropbox-backup-service"
+          },
+          {
+            "selected": false,
+            "text": "litdb-dev",
+            "value": "litdb-dev"
+          },
+          {
+            "selected": false,
+            "text": "LitDB-AI-Agent",
+            "value": "LitDB-AI-Agent"
+          }
+        ],
         "sort": 1
       },
       {
@@ -596,7 +618,7 @@
         "multi": true,
         "name": "service",
         "query": "SELECT DISTINCT coalesce(resource_attributes->>'service.name', service_name) AS __text, coalesce(resource_attributes->>'service.name', service_name) AS __value FROM otel_logs WHERE coalesce(resource_attributes->>'service.name', service_name) IS NOT NULL AND \"timestamp\" > make_timestamp_ns((extract(epoch from now()) - 86400)::bigint * 1000000000) AND (TRUE) ORDER BY 1",
-        "refresh": 2,
+        "refresh": 1,
         "type": "query",
         "sort": 1
       }
