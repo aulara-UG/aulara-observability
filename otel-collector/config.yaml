@@ -24,10 +24,6 @@ receivers:
           authenticator: basicauth/server
 
 processors:
-  memory_limiter:
-    check_interval: 1s
-    limit_mib: 400
-    spike_limit_mib: 100
   # Stamp resource.tenant.id from the authenticated Basic Auth username.
   resource/tenant:
     attributes:
@@ -67,15 +63,15 @@ service:
   pipelines:
     logs:
       receivers: [otlp]
-      processors: [memory_limiter, resource/tenant, resource/env, batch]
+      processors: [resource/tenant, resource/env, batch]
       exporters: [otlp_http/serenedb]
     traces:
       receivers: [otlp]
-      processors: [memory_limiter, resource/tenant, resource/env, batch]
+      processors: [resource/tenant, resource/env, batch]
       exporters: [otlp_http/serenedb]
     metrics:
       receivers: [otlp]
-      processors: [memory_limiter, resource/tenant, resource/env, batch]
+      processors: [resource/tenant, resource/env, batch]
       exporters: [otlp_http/serenedb]
   telemetry:
     logs:
