@@ -26,30 +26,4 @@ done < "$OUT/tables.txt"
 (cd /tmp && tar -czf /tmp/dump.tgz dump)
 ls -la /tmp/dump.tgz
 echo dump_ok
-
-exec python3 - <<'PY'
-import os
-import http.server
-
-TOKEN = os.environ["MIG_TOKEN"]
-PORT = int(os.environ.get("PORT", "8080"))
-
-class Handler(http.server.BaseHTTPRequestHandler):
-    def do_GET(self):
-        if self.headers.get("X-Mig-Token") != TOKEN:
-            self.send_response(401)
-            self.end_headers()
-            return
-        with open("/tmp/dump.tgz", "rb") as fh:
-            data = fh.read()
-        self.send_response(200)
-        self.send_header("Content-Type", "application/gzip")
-        self.send_header("Content-Length", str(len(data)))
-        self.end_headers()
-        self.wfile.write(data)
-
-    def log_message(self, *_args):
-        return
-
-http.server.HTTPServer(("0.0.0.0", PORT), Handler).serve_forever()
-PY
+exec python3 /serve.py
