@@ -1,0 +1,808 @@
+{
+  "annotations": {
+    "list": []
+  },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [
+    {
+      "title": "Command Center",
+      "type": "link",
+      "icon": "home",
+      "url": "/d/cyto-command-center/command-center",
+      "keepTime": true
+    },
+    {
+      "title": "Fleet Infrastructure",
+      "type": "link",
+      "icon": "dashboard",
+      "url": "/d/cyto-fleet-infra/fleet-infrastructure",
+      "keepTime": true
+    },
+    {
+      "title": "Host Detail",
+      "type": "link",
+      "icon": "dashboard",
+      "url": "/d/cyto-server-detail/host-infrastructure-detail",
+      "keepTime": true,
+      "includeVars": true
+    },
+    {
+      "title": "Service Detail",
+      "type": "link",
+      "icon": "dashboard",
+      "url": "/d/cyto-service-detail/service-detail",
+      "keepTime": true,
+      "includeVars": true
+    },
+    {
+      "title": "Backup Operations",
+      "type": "link",
+      "icon": "dashboard",
+      "url": "/d/cyto-backups/backup-operations",
+      "keepTime": true
+    },
+    {
+      "title": "Errors & Incidents",
+      "type": "link",
+      "icon": "dashboard",
+      "url": "/d/cyto-errors/errors-incidents",
+      "keepTime": true
+    }
+  ],
+  "panels": [
+    {
+      "type": "text",
+      "id": 99,
+      "title": "",
+      "gridPos": {
+        "h": 2,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "options": {
+        "mode": "markdown",
+        "content": "[Command Center](/d/cyto-command-center) \u00b7 [Fleet](/d/cyto-fleet-infra) \u00b7 [Host Detail](/d/cyto-server-detail) \u00b7 [Incidents](/d/cyto-errors)"
+      }
+    },
+    {
+      "type": "row",
+      "id": 100,
+      "title": "Backup health",
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 2
+      },
+      "collapsed": false,
+      "panels": []
+    },
+    {
+      "type": "stat",
+      "id": 1,
+      "title": "Successful backups",
+      "description": "",
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 0,
+        "y": 3
+      },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "serenedb"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "serenedb"
+          },
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT count(*) AS \"Success\" FROM otel_logs\nWHERE $__timeFilter(\"timestamp\") AND (\n    log_attributes->>'backup.status' = 'success'\n    OR log_attributes->>'event.name' = 'backup.success'\n    OR (log_attributes->>'log.kind' = 'backup' AND body ~* '(Done|completed|success)')\n  )"
+        }
+      ]
+    },
+    {
+      "type": "stat",
+      "id": 2,
+      "title": "Failed backups",
+      "description": "",
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 4,
+        "y": 3
+      },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "serenedb"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 1
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "serenedb"
+          },
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT count(*) AS \"Failed\" FROM otel_logs\nWHERE $__timeFilter(\"timestamp\") AND (\n    log_attributes->>'backup.status' IN ('failed','failure','error')\n    OR log_attributes->>'event.name' = 'backup.failed'\n    OR (log_attributes->>'log.kind' = 'backup' AND body ~* '(ERROR|FAILED|fail\\()')\n  )"
+        }
+      ]
+    },
+    {
+      "type": "stat",
+      "id": 3,
+      "title": "Services with success",
+      "description": "",
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 8,
+        "y": 3
+      },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "serenedb"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "blue",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "serenedb"
+          },
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT count(DISTINCT coalesce(resource_attributes->>'service.name', service_name))\nFROM otel_logs WHERE $__timeFilter(\"timestamp\") AND (\n    log_attributes->>'backup.status' = 'success'\n    OR log_attributes->>'event.name' = 'backup.success'\n    OR (log_attributes->>'log.kind' = 'backup' AND body ~* '(Done|completed|success)')\n  )"
+        }
+      ]
+    },
+    {
+      "type": "stat",
+      "id": 4,
+      "title": "Services with failure",
+      "description": "",
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 12,
+        "y": 3
+      },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "serenedb"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 1
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "serenedb"
+          },
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT count(DISTINCT coalesce(resource_attributes->>'service.name', service_name))\nFROM otel_logs WHERE $__timeFilter(\"timestamp\") AND (\n    log_attributes->>'backup.status' IN ('failed','failure','error')\n    OR log_attributes->>'event.name' = 'backup.failed'\n    OR (log_attributes->>'log.kind' = 'backup' AND body ~* '(ERROR|FAILED|fail\\()')\n  )"
+        }
+      ]
+    },
+    {
+      "type": "stat",
+      "id": 5,
+      "title": "Hours since last success",
+      "description": "",
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 16,
+        "y": 3
+      },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "serenedb"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 12
+              },
+              {
+                "color": "red",
+                "value": 30
+              }
+            ]
+          },
+          "unit": "h"
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "serenedb"
+          },
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT CASE WHEN max(\"timestamp\") IS NULL THEN NULL\n  ELSE (extract(epoch from now())*1e9 - epoch_ns(max(\"timestamp\"))) / 3.6e12\nEND FROM otel_logs WHERE (\n    log_attributes->>'backup.status' = 'success'\n    OR log_attributes->>'event.name' = 'backup.success'\n    OR (log_attributes->>'log.kind' = 'backup' AND body ~* '(Done|completed|success)')\n  )"
+        }
+      ]
+    },
+    {
+      "type": "stat",
+      "id": 6,
+      "title": "Backup log volume",
+      "description": "",
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 20,
+        "y": 3
+      },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "serenedb"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "blue",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "serenedb"
+          },
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT count(*) FROM otel_logs\nWHERE $__timeFilter(\"timestamp\") AND (\n    log_attributes->>'log.kind' = 'backup'\n    OR log_attributes->>'event.name' LIKE 'backup.%'\n    OR coalesce(resource_attributes->>'service.name', service_name) ILIKE '%backup%'\n  )"
+        }
+      ]
+    },
+    {
+      "type": "table",
+      "id": 10,
+      "title": "Backup status by service",
+      "description": "",
+      "gridPos": {
+        "h": 9,
+        "w": 24,
+        "x": 0,
+        "y": 7
+      },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "serenedb"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "filterable": true
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "status"
+            },
+            "properties": [
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-background",
+                  "mode": "basic"
+                }
+              },
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "UP": {
+                        "color": "green",
+                        "index": 0,
+                        "text": "UP"
+                      },
+                      "DOWN": {
+                        "color": "red",
+                        "index": 1,
+                        "text": "DOWN"
+                      },
+                      "OK": {
+                        "color": "green",
+                        "index": 0,
+                        "text": "OK"
+                      },
+                      "FAIL": {
+                        "color": "red",
+                        "index": 1,
+                        "text": "FAIL"
+                      },
+                      "STALE": {
+                        "color": "orange",
+                        "index": 2,
+                        "text": "STALE"
+                      },
+                      "UNKNOWN": {
+                        "color": "super-light-yellow",
+                        "index": 3,
+                        "text": "UNKNOWN"
+                      },
+                      "RECENT_BOOT": {
+                        "color": "purple",
+                        "index": 4,
+                        "text": "RECENT BOOT"
+                      },
+                      "STABLE": {
+                        "color": "green",
+                        "index": 5,
+                        "text": "STABLE"
+                      }
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "footer": {
+          "show": false
+        },
+        "cellHeight": "sm"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "serenedb"
+          },
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "WITH base AS (\n  SELECT coalesce(resource_attributes->>'service.name', service_name) AS service,\n         resource_attributes->>'host.name' AS host,\n         \"timestamp\",\n         CASE\n           WHEN (\n    log_attributes->>'backup.status' IN ('failed','failure','error')\n    OR log_attributes->>'event.name' = 'backup.failed'\n    OR (log_attributes->>'log.kind' = 'backup' AND body ~* '(ERROR|FAILED|fail\\()')\n  ) THEN 'FAIL'\n           WHEN (\n    log_attributes->>'backup.status' = 'success'\n    OR log_attributes->>'event.name' = 'backup.success'\n    OR (log_attributes->>'log.kind' = 'backup' AND body ~* '(Done|completed|success)')\n  ) THEN 'OK'\n           ELSE 'INFO'\n         END AS kind,\n         coalesce((log_attributes->>'backup.duration_seconds')::double precision, NULL) AS duration_s\n  FROM otel_logs\n  WHERE $__timeFilter(\"timestamp\")\n    AND (\n    log_attributes->>'log.kind' = 'backup'\n    OR log_attributes->>'event.name' LIKE 'backup.%'\n    OR coalesce(resource_attributes->>'service.name', service_name) ILIKE '%backup%'\n  )\n    AND coalesce(resource_attributes->>'service.name', service_name) IN (${service:sqlstring})\n),\nagg AS (\n  SELECT service, max(host) AS host,\n         count(*) FILTER (WHERE kind = 'OK') AS successes,\n         count(*) FILTER (WHERE kind = 'FAIL') AS failures,\n         max(\"timestamp\") FILTER (WHERE kind = 'OK') AS last_success,\n         max(\"timestamp\") FILTER (WHERE kind = 'FAIL') AS last_failure,\n         avg(duration_s) FILTER (WHERE kind = 'OK') AS avg_duration_s\n  FROM base GROUP BY service\n)\nSELECT service, host,\n       CASE\n         WHEN failures > 0 AND (last_failure IS NULL OR last_success IS NULL OR last_failure >= last_success) THEN 'FAIL'\n         WHEN successes > 0 THEN 'OK'\n         ELSE 'UNKNOWN'\n       END AS status,\n       successes, failures, last_success, last_failure, avg_duration_s\nFROM agg ORDER BY status ASC, failures DESC, service"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "id": 20,
+      "title": "Backup outcomes over time",
+      "description": "",
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 0,
+        "y": 16
+      },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "serenedb"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "drawStyle": "bars",
+            "lineWidth": 2,
+            "fillOpacity": 45,
+            "showPoints": "never",
+            "spanNulls": true,
+            "stacking": {
+              "mode": "normal"
+            }
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "serenedb"
+          },
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "SELECT $__timeGroupAlias(\"timestamp\", $__interval),\n       CASE WHEN (\n    log_attributes->>'backup.status' IN ('failed','failure','error')\n    OR log_attributes->>'event.name' = 'backup.failed'\n    OR (log_attributes->>'log.kind' = 'backup' AND body ~* '(ERROR|FAILED|fail\\()')\n  ) THEN 'failed' WHEN (\n    log_attributes->>'backup.status' = 'success'\n    OR log_attributes->>'event.name' = 'backup.success'\n    OR (log_attributes->>'log.kind' = 'backup' AND body ~* '(Done|completed|success)')\n  ) THEN 'success' ELSE 'other' END AS metric,\n       count(*) AS value\nFROM otel_logs\nWHERE $__timeFilter(\"timestamp\") AND (\n    log_attributes->>'log.kind' = 'backup'\n    OR log_attributes->>'event.name' LIKE 'backup.%'\n    OR coalesce(resource_attributes->>'service.name', service_name) ILIKE '%backup%'\n  )\n  AND coalesce(resource_attributes->>'service.name', service_name) IN (${service:sqlstring})\nGROUP BY 1, 2 ORDER BY 1"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "id": 21,
+      "title": "Backup duration (seconds)",
+      "description": "",
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 12,
+        "y": 16
+      },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "serenedb"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 18,
+            "showPoints": "never",
+            "spanNulls": true
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "serenedb"
+          },
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "SELECT \"timestamp\" AS time,\n       coalesce(resource_attributes->>'service.name', service_name) AS metric,\n       (log_attributes->>'backup.duration_seconds')::double precision AS value\nFROM otel_logs\nWHERE $__timeFilter(\"timestamp\") AND (\n    log_attributes->>'backup.status' = 'success'\n    OR log_attributes->>'event.name' = 'backup.success'\n    OR (log_attributes->>'log.kind' = 'backup' AND body ~* '(Done|completed|success)')\n  )\n  AND log_attributes->>'backup.duration_seconds' IS NOT NULL\n  AND coalesce(resource_attributes->>'service.name', service_name) IN (${service:sqlstring})\nORDER BY 1"
+        }
+      ]
+    },
+    {
+      "type": "table",
+      "id": 30,
+      "title": "Backup incident / detail log",
+      "description": "",
+      "gridPos": {
+        "h": 12,
+        "w": 24,
+        "x": 0,
+        "y": 25
+      },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "serenedb"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "filterable": true
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "status"
+            },
+            "properties": [
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-background",
+                  "mode": "basic"
+                }
+              },
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "UP": {
+                        "color": "green",
+                        "index": 0,
+                        "text": "UP"
+                      },
+                      "DOWN": {
+                        "color": "red",
+                        "index": 1,
+                        "text": "DOWN"
+                      },
+                      "OK": {
+                        "color": "green",
+                        "index": 0,
+                        "text": "OK"
+                      },
+                      "FAIL": {
+                        "color": "red",
+                        "index": 1,
+                        "text": "FAIL"
+                      },
+                      "STALE": {
+                        "color": "orange",
+                        "index": 2,
+                        "text": "STALE"
+                      },
+                      "UNKNOWN": {
+                        "color": "super-light-yellow",
+                        "index": 3,
+                        "text": "UNKNOWN"
+                      },
+                      "RECENT_BOOT": {
+                        "color": "purple",
+                        "index": 4,
+                        "text": "RECENT BOOT"
+                      },
+                      "STABLE": {
+                        "color": "green",
+                        "index": 5,
+                        "text": "STABLE"
+                      }
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "body"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 720
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "auto",
+                  "wrapText": true
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "footer": {
+          "show": false
+        },
+        "cellHeight": "sm"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "serenedb"
+          },
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT \"timestamp\",\n       resource_attributes->>'host.name' AS host,\n       coalesce(resource_attributes->>'service.name', service_name) AS service,\n       CASE WHEN (\n    log_attributes->>'backup.status' IN ('failed','failure','error')\n    OR log_attributes->>'event.name' = 'backup.failed'\n    OR (log_attributes->>'log.kind' = 'backup' AND body ~* '(ERROR|FAILED|fail\\()')\n  ) THEN 'FAIL' WHEN (\n    log_attributes->>'backup.status' = 'success'\n    OR log_attributes->>'event.name' = 'backup.success'\n    OR (log_attributes->>'log.kind' = 'backup' AND body ~* '(Done|completed|success)')\n  ) THEN 'OK' ELSE 'INFO' END AS status,\n       coalesce(log_attributes->>'event.name', log_attributes->>'log.kind', '') AS event,\n       left(body, 4000) AS body\nFROM otel_logs\nWHERE $__timeFilter(\"timestamp\") AND (\n    log_attributes->>'log.kind' = 'backup'\n    OR log_attributes->>'event.name' LIKE 'backup.%'\n    OR coalesce(resource_attributes->>'service.name', service_name) ILIKE '%backup%'\n  )\n  AND coalesce(resource_attributes->>'service.name', service_name) IN (${service:sqlstring})\n  AND ((\n    log_attributes->>'backup.status' = 'success'\n    OR log_attributes->>'event.name' = 'backup.success'\n    OR (log_attributes->>'log.kind' = 'backup' AND body ~* '(Done|completed|success)')\n  ) OR (\n    log_attributes->>'backup.status' IN ('failed','failure','error')\n    OR log_attributes->>'event.name' = 'backup.failed'\n    OR (log_attributes->>'log.kind' = 'backup' AND body ~* '(ERROR|FAILED|fail\\()')\n  ) OR body ~* '(Done|ERROR|FAILED|Start |borg |rclone )')\nORDER BY \"timestamp\" DESC LIMIT 200"
+        }
+      ]
+    }
+  ],
+  "refresh": "30s",
+  "schemaVersion": 39,
+  "tags": [
+    "cytosorbents",
+    "enterprise",
+    "observability",
+    "backup",
+    "reliability"
+  ],
+  "templating": {
+    "list": [
+      {
+        "current": {
+          "selected": true,
+          "text": "All",
+          "value": "$__all"
+        },
+        "datasource": {
+          "type": "grafana-postgresql-datasource",
+          "uid": "serenedb"
+        },
+        "definition": "SELECT DISTINCT coalesce(resource_attributes->>'service.name', service_name) AS __text, coalesce(resource_attributes->>'service.name', service_name) AS __value FROM otel_logs WHERE coalesce(resource_attributes->>'service.name', service_name) IS NOT NULL AND (coalesce(resource_attributes->>'service.name', service_name) ILIKE '%backup%' OR log_attributes->>'log.kind' = 'backup') ORDER BY 1",
+        "includeAll": true,
+        "label": "Service",
+        "multi": true,
+        "name": "service",
+        "query": "SELECT DISTINCT coalesce(resource_attributes->>'service.name', service_name) AS __text, coalesce(resource_attributes->>'service.name', service_name) AS __value FROM otel_logs WHERE coalesce(resource_attributes->>'service.name', service_name) IS NOT NULL AND (coalesce(resource_attributes->>'service.name', service_name) ILIKE '%backup%' OR log_attributes->>'log.kind' = 'backup') ORDER BY 1",
+        "refresh": 2,
+        "type": "query",
+        "sort": 1
+      }
+    ]
+  },
+  "time": {
+    "from": "now-7d",
+    "to": "now"
+  },
+  "timepicker": {},
+  "timezone": "browser",
+  "title": "Backup Operations",
+  "uid": "cyto-backups",
+  "version": 3
+}

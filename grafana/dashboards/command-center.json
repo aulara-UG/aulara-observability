@@ -1,0 +1,926 @@
+{
+  "annotations": {
+    "list": []
+  },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [
+    {
+      "title": "Command Center",
+      "type": "link",
+      "icon": "home",
+      "url": "/d/cyto-command-center/command-center",
+      "keepTime": true
+    },
+    {
+      "title": "Fleet Infrastructure",
+      "type": "link",
+      "icon": "dashboard",
+      "url": "/d/cyto-fleet-infra/fleet-infrastructure",
+      "keepTime": true
+    },
+    {
+      "title": "Host Detail",
+      "type": "link",
+      "icon": "dashboard",
+      "url": "/d/cyto-server-detail/host-infrastructure-detail",
+      "keepTime": true,
+      "includeVars": true
+    },
+    {
+      "title": "Service Detail",
+      "type": "link",
+      "icon": "dashboard",
+      "url": "/d/cyto-service-detail/service-detail",
+      "keepTime": true,
+      "includeVars": true
+    },
+    {
+      "title": "Backup Operations",
+      "type": "link",
+      "icon": "dashboard",
+      "url": "/d/cyto-backups/backup-operations",
+      "keepTime": true
+    },
+    {
+      "title": "Errors & Incidents",
+      "type": "link",
+      "icon": "dashboard",
+      "url": "/d/cyto-errors/errors-incidents",
+      "keepTime": true
+    }
+  ],
+  "panels": [
+    {
+      "type": "text",
+      "id": 1,
+      "title": "",
+      "gridPos": {
+        "h": 3,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "options": {
+        "mode": "markdown",
+        "content": "# CytoSorbents Observability \u2014 Command Center\n**Boss walkthrough:** Fleet health \u2192 pick a host \u2192 Service Detail \u2192 Backups \u2192 Incidents.\nDashboards: [Fleet](/d/cyto-fleet-infra) \u00b7 [Host Detail](/d/cyto-server-detail) \u00b7 [Service Detail](/d/cyto-service-detail) \u00b7 [Backups](/d/cyto-backups) \u00b7 [Incidents](/d/cyto-errors)"
+      }
+    },
+    {
+      "type": "stat",
+      "id": 2,
+      "title": "Hosts UP",
+      "description": "Hosts with system.uptime sample in the last 5 minutes.",
+      "gridPos": {
+        "h": 4,
+        "w": 3,
+        "x": 0,
+        "y": 3
+      },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "serenedb"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "serenedb"
+          },
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT count(DISTINCT resource_attributes->>'host.name')\nFROM otel_metrics_gauge\nWHERE metric_name = 'system.uptime' AND \"timestamp\" > make_timestamp_ns((extract(epoch from now()) - 300)::bigint * 1000000000)"
+        }
+      ]
+    },
+    {
+      "type": "stat",
+      "id": 3,
+      "title": "Hosts silent (>5m)",
+      "description": "",
+      "gridPos": {
+        "h": 4,
+        "w": 3,
+        "x": 3,
+        "y": 3
+      },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "serenedb"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 1
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "serenedb"
+          },
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "WITH all_hosts AS (\n  SELECT DISTINCT resource_attributes->>'host.name' AS host FROM otel_metrics_gauge\n  WHERE resource_attributes->>'host.name' IS NOT NULL AND $__timeFilter(\"timestamp\")\n),\nalive AS (\n  SELECT DISTINCT resource_attributes->>'host.name' AS host FROM otel_metrics_gauge\n  WHERE metric_name = 'system.uptime' AND \"timestamp\" > make_timestamp_ns((extract(epoch from now()) - 300)::bigint * 1000000000)\n)\nSELECT count(*) FROM all_hosts a WHERE NOT EXISTS (SELECT 1 FROM alive b WHERE b.host = a.host)"
+        }
+      ]
+    },
+    {
+      "type": "stat",
+      "id": 4,
+      "title": "Fleet CPU p95",
+      "description": "p95 of CPU busy = 1 - idle (not raw state average).",
+      "gridPos": {
+        "h": 4,
+        "w": 3,
+        "x": 6,
+        "y": 3
+      },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "serenedb"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 0.7
+              },
+              {
+                "color": "red",
+                "value": 0.9
+              }
+            ]
+          },
+          "unit": "percentunit"
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "serenedb"
+          },
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "WITH samples AS (\n  SELECT resource_attributes->>'host.name' AS host,\n         attributes->>'cpu' AS cpu,\n         date_trunc('minute', (\"timestamp\")::timestamp) AS bucket,\n         1 - avg(value) AS busy\n  FROM otel_metrics_gauge\n  WHERE metric_name = 'system.cpu.utilization'\n    AND attributes->>'state' = 'idle'\n    AND $__timeFilter(\"timestamp\")\n    AND TRUE\n    AND \"timestamp\" > make_timestamp_ns((extract(epoch from now()) - 300)::bigint * 1000000000)\n  GROUP BY 1, 2, 3\n)\nSELECT percentile_cont(0.95) WITHIN GROUP (ORDER BY busy) FROM samples"
+        }
+      ]
+    },
+    {
+      "type": "stat",
+      "id": 5,
+      "title": "Fleet mem p95",
+      "description": "p95 of memory state=used only.",
+      "gridPos": {
+        "h": 4,
+        "w": 3,
+        "x": 9,
+        "y": 3
+      },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "serenedb"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 0.8
+              },
+              {
+                "color": "red",
+                "value": 0.92
+              }
+            ]
+          },
+          "unit": "percentunit"
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "serenedb"
+          },
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT percentile_cont(0.95) WITHIN GROUP (ORDER BY value)\nFROM otel_metrics_gauge\nWHERE metric_name = 'system.memory.utilization'\n  AND attributes->>'state' = 'used'\n  AND $__timeFilter(\"timestamp\")\n  AND TRUE\n  AND \"timestamp\" > make_timestamp_ns((extract(epoch from now()) - 300)::bigint * 1000000000)"
+        }
+      ]
+    },
+    {
+      "type": "stat",
+      "id": 6,
+      "title": "True error events",
+      "description": "log.kind=error / exception / severity ERROR+ only \u2014 not INFO body matches.",
+      "gridPos": {
+        "h": 4,
+        "w": 3,
+        "x": 12,
+        "y": 3
+      },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "serenedb"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 1
+              },
+              {
+                "color": "orange",
+                "value": 10
+              },
+              {
+                "color": "red",
+                "value": 50
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "serenedb"
+          },
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT count(*) FROM otel_logs\nWHERE $__timeFilter(\"timestamp\") AND (\n    log_attributes->>'log.kind' = 'error'\n    OR log_attributes->>'exception.type' IS NOT NULL\n    OR upper(coalesce(severity_text, '')) IN ('ERROR', 'FATAL', 'CRITICAL')\n    OR severity_number >= 17\n  )\n  AND NOT (\n    log_attributes->>'backup.status' = 'success'\n    OR log_attributes->>'event.name' = 'backup.success'\n    OR log_attributes->>'event.name' = 'otel-backup-event'\n  )"
+        }
+      ]
+    },
+    {
+      "type": "stat",
+      "id": 7,
+      "title": "Hours since last backup OK",
+      "description": "",
+      "gridPos": {
+        "h": 4,
+        "w": 3,
+        "x": 15,
+        "y": 3
+      },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "serenedb"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 12
+              },
+              {
+                "color": "red",
+                "value": 30
+              }
+            ]
+          },
+          "unit": "h"
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "serenedb"
+          },
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT CASE WHEN max(\"timestamp\") IS NULL THEN NULL\n  ELSE (extract(epoch from now())*1e9 - epoch_ns(max(\"timestamp\"))) / 3.6e12\nEND FROM otel_logs WHERE (\n    log_attributes->>'backup.status' = 'success'\n    OR log_attributes->>'event.name' = 'backup.success'\n    OR (log_attributes->>'log.kind' = 'backup' AND body ~* '(Done|completed|success)')\n  )"
+        }
+      ]
+    },
+    {
+      "type": "stat",
+      "id": 8,
+      "title": "Backup failures (range)",
+      "description": "",
+      "gridPos": {
+        "h": 4,
+        "w": 3,
+        "x": 18,
+        "y": 3
+      },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "serenedb"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 1
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "serenedb"
+          },
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT count(*) FROM otel_logs\nWHERE $__timeFilter(\"timestamp\") AND (\n    log_attributes->>'backup.status' IN ('failed','failure','error')\n    OR log_attributes->>'event.name' = 'backup.failed'\n    OR (log_attributes->>'log.kind' = 'backup' AND body ~* '(ERROR|FAILED|fail\\()')\n  )"
+        }
+      ]
+    },
+    {
+      "type": "stat",
+      "id": 9,
+      "title": "Services seen",
+      "description": "",
+      "gridPos": {
+        "h": 4,
+        "w": 3,
+        "x": 21,
+        "y": 3
+      },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "serenedb"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "blue",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "serenedb"
+          },
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT count(DISTINCT coalesce(resource_attributes->>'service.name', service_name))\nFROM otel_logs WHERE $__timeFilter(\"timestamp\")\n  AND coalesce(resource_attributes->>'service.name', service_name) IS NOT NULL"
+        }
+      ]
+    },
+    {
+      "type": "table",
+      "id": 20,
+      "title": "Host status board",
+      "description": "Live board. Open Host Detail with the host variable set.",
+      "gridPos": {
+        "h": 9,
+        "w": 24,
+        "x": 0,
+        "y": 7
+      },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "serenedb"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "filterable": true
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "status"
+            },
+            "properties": [
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-background",
+                  "mode": "basic"
+                }
+              },
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "UP": {
+                        "color": "green",
+                        "index": 0,
+                        "text": "UP"
+                      },
+                      "DOWN": {
+                        "color": "red",
+                        "index": 1,
+                        "text": "DOWN"
+                      },
+                      "OK": {
+                        "color": "green",
+                        "index": 0,
+                        "text": "OK"
+                      },
+                      "FAIL": {
+                        "color": "red",
+                        "index": 1,
+                        "text": "FAIL"
+                      },
+                      "STALE": {
+                        "color": "orange",
+                        "index": 2,
+                        "text": "STALE"
+                      },
+                      "UNKNOWN": {
+                        "color": "super-light-yellow",
+                        "index": 3,
+                        "text": "UNKNOWN"
+                      },
+                      "RECENT_BOOT": {
+                        "color": "purple",
+                        "index": 4,
+                        "text": "RECENT BOOT"
+                      },
+                      "STABLE": {
+                        "color": "green",
+                        "index": 5,
+                        "text": "STABLE"
+                      }
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "uptime_s"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "dtdurations"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "cpu_busy"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "percentunit"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "mem_used"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "percentunit"
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "footer": {
+          "show": false
+        },
+        "cellHeight": "sm"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "serenedb"
+          },
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "WITH hosts AS (\n  SELECT DISTINCT resource_attributes->>'host.name' AS host\n  FROM otel_metrics_gauge\n  WHERE resource_attributes->>'host.name' IS NOT NULL AND $__timeFilter(\"timestamp\")\n),\nalive AS (\n  SELECT resource_attributes->>'host.name' AS host, max(\"timestamp\") AS last_seen\n  FROM otel_metrics_gauge\n  WHERE metric_name = 'system.uptime' AND \"timestamp\" > make_timestamp_ns((extract(epoch from now()) - 300)::bigint * 1000000000)\n  GROUP BY 1\n),\ncpu AS (\n  SELECT resource_attributes->>'host.name' AS host, 1 - avg(value) AS cpu_busy\n  FROM otel_metrics_gauge\n  WHERE metric_name = 'system.cpu.utilization' AND attributes->>'state' = 'idle' AND \"timestamp\" > make_timestamp_ns((extract(epoch from now()) - 300)::bigint * 1000000000)\n  GROUP BY 1\n),\nmem AS (\n  SELECT DISTINCT ON (resource_attributes->>'host.name')\n         resource_attributes->>'host.name' AS host, value AS mem_used\n  FROM otel_metrics_gauge\n  WHERE metric_name = 'system.memory.utilization' AND attributes->>'state' = 'used' AND \"timestamp\" > make_timestamp_ns((extract(epoch from now()) - 300)::bigint * 1000000000)\n  ORDER BY resource_attributes->>'host.name', \"timestamp\" DESC\n),\nuptime AS (\n  SELECT DISTINCT ON (resource_attributes->>'host.name')\n         resource_attributes->>'host.name' AS host, value AS uptime_s\n  FROM otel_metrics_gauge\n  WHERE metric_name = 'system.uptime' AND \"timestamp\" > make_timestamp_ns((extract(epoch from now()) - 300)::bigint * 1000000000)\n  ORDER BY resource_attributes->>'host.name', \"timestamp\" DESC\n),\nerrs AS (\n  SELECT resource_attributes->>'host.name' AS host, count(*) AS errors\n  FROM otel_logs WHERE $__timeFilter(\"timestamp\") AND (\n    log_attributes->>'log.kind' = 'error'\n    OR log_attributes->>'exception.type' IS NOT NULL\n    OR upper(coalesce(severity_text, '')) IN ('ERROR', 'FATAL', 'CRITICAL')\n    OR severity_number >= 17\n  )\n  AND NOT (\n    log_attributes->>'backup.status' = 'success'\n    OR log_attributes->>'event.name' = 'backup.success'\n    OR log_attributes->>'event.name' = 'otel-backup-event'\n  )\n  GROUP BY 1\n)\nSELECT h.host,\n       CASE WHEN a.host IS NOT NULL THEN 'UP' ELSE 'DOWN' END AS status,\n       u.uptime_s,\n       c.cpu_busy,\n       m.mem_used,\n       coalesce(e.errors, 0) AS errors\nFROM hosts h\nLEFT JOIN alive a ON a.host = h.host\nLEFT JOIN cpu c ON c.host = h.host\nLEFT JOIN mem m ON m.host = h.host\nLEFT JOIN uptime u ON u.host = h.host\nLEFT JOIN errs e ON e.host = h.host\nORDER BY status ASC, errors DESC, h.host"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "id": 30,
+      "title": "Fleet CPU busy (1 - idle)",
+      "description": "Corrected: busy = 1 \u2212 idle. Never averages all CPU states.",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 16
+      },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "serenedb"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 18,
+            "showPoints": "never",
+            "spanNulls": true
+          },
+          "max": 1
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "serenedb"
+          },
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "SELECT $__timeGroupAlias(\"timestamp\", $__interval),\n       resource_attributes->>'host.name' AS metric,\n       1 - avg(value) AS value\nFROM otel_metrics_gauge\nWHERE metric_name = 'system.cpu.utilization'\n  AND attributes->>'state' = 'idle'\n  AND $__timeFilter(\"timestamp\")\n  AND TRUE\nGROUP BY 1, 2\nORDER BY 1"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "id": 31,
+      "title": "Fleet memory used",
+      "description": "Corrected: state=used only.",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 16
+      },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "serenedb"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 18,
+            "showPoints": "never",
+            "spanNulls": true
+          },
+          "max": 1
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "serenedb"
+          },
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "SELECT $__timeGroupAlias(\"timestamp\", $__interval),\n       resource_attributes->>'host.name' AS metric,\n       avg(value) AS value\nFROM otel_metrics_gauge\nWHERE metric_name = 'system.memory.utilization'\n  AND attributes->>'state' = 'used'\n  AND $__timeFilter(\"timestamp\")\n  AND TRUE\nGROUP BY 1, 2\nORDER BY 1"
+        }
+      ]
+    },
+    {
+      "type": "table",
+      "id": 40,
+      "title": "Backup last success by host",
+      "description": "Jump to Backup Operations for full pipeline detail.",
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 24
+      },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "serenedb"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "filterable": true
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "status"
+            },
+            "properties": [
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-background",
+                  "mode": "basic"
+                }
+              },
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "UP": {
+                        "color": "green",
+                        "index": 0,
+                        "text": "UP"
+                      },
+                      "DOWN": {
+                        "color": "red",
+                        "index": 1,
+                        "text": "DOWN"
+                      },
+                      "OK": {
+                        "color": "green",
+                        "index": 0,
+                        "text": "OK"
+                      },
+                      "FAIL": {
+                        "color": "red",
+                        "index": 1,
+                        "text": "FAIL"
+                      },
+                      "STALE": {
+                        "color": "orange",
+                        "index": 2,
+                        "text": "STALE"
+                      },
+                      "UNKNOWN": {
+                        "color": "super-light-yellow",
+                        "index": 3,
+                        "text": "UNKNOWN"
+                      },
+                      "RECENT_BOOT": {
+                        "color": "purple",
+                        "index": 4,
+                        "text": "RECENT BOOT"
+                      },
+                      "STABLE": {
+                        "color": "green",
+                        "index": 5,
+                        "text": "STABLE"
+                      }
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "footer": {
+          "show": false
+        },
+        "cellHeight": "sm"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "serenedb"
+          },
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT resource_attributes->>'host.name' AS host,\n       coalesce(resource_attributes->>'service.name', service_name) AS service,\n       max(\"timestamp\") FILTER (WHERE (\n    log_attributes->>'backup.status' = 'success'\n    OR log_attributes->>'event.name' = 'backup.success'\n    OR (log_attributes->>'log.kind' = 'backup' AND body ~* '(Done|completed|success)')\n  )) AS last_success,\n       max(\"timestamp\") FILTER (WHERE (\n    log_attributes->>'backup.status' IN ('failed','failure','error')\n    OR log_attributes->>'event.name' = 'backup.failed'\n    OR (log_attributes->>'log.kind' = 'backup' AND body ~* '(ERROR|FAILED|fail\\()')\n  )) AS last_failure,\n       count(*) FILTER (WHERE (\n    log_attributes->>'backup.status' = 'success'\n    OR log_attributes->>'event.name' = 'backup.success'\n    OR (log_attributes->>'log.kind' = 'backup' AND body ~* '(Done|completed|success)')\n  )) AS successes,\n       count(*) FILTER (WHERE (\n    log_attributes->>'backup.status' IN ('failed','failure','error')\n    OR log_attributes->>'event.name' = 'backup.failed'\n    OR (log_attributes->>'log.kind' = 'backup' AND body ~* '(ERROR|FAILED|fail\\()')\n  )) AS failures\nFROM otel_logs\nWHERE $__timeFilter(\"timestamp\") AND (\n    log_attributes->>'log.kind' = 'backup'\n    OR log_attributes->>'event.name' LIKE 'backup.%'\n    OR coalesce(resource_attributes->>'service.name', service_name) ILIKE '%backup%'\n  )\nGROUP BY 1, 2\nORDER BY last_success DESC NULLS LAST\nLIMIT 40"
+        }
+      ]
+    }
+  ],
+  "refresh": "30s",
+  "schemaVersion": 39,
+  "tags": [
+    "cytosorbents",
+    "enterprise",
+    "observability",
+    "home",
+    "command-center"
+  ],
+  "templating": {
+    "list": []
+  },
+  "time": {
+    "from": "now-12h",
+    "to": "now"
+  },
+  "timepicker": {},
+  "timezone": "browser",
+  "title": "Command Center",
+  "uid": "cyto-command-center",
+  "version": 3
+}

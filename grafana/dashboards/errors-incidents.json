@@ -1,0 +1,614 @@
+{
+  "annotations": {
+    "list": []
+  },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [
+    {
+      "title": "Command Center",
+      "type": "link",
+      "icon": "home",
+      "url": "/d/cyto-command-center/command-center",
+      "keepTime": true
+    },
+    {
+      "title": "Fleet Infrastructure",
+      "type": "link",
+      "icon": "dashboard",
+      "url": "/d/cyto-fleet-infra/fleet-infrastructure",
+      "keepTime": true
+    },
+    {
+      "title": "Host Detail",
+      "type": "link",
+      "icon": "dashboard",
+      "url": "/d/cyto-server-detail/host-infrastructure-detail",
+      "keepTime": true,
+      "includeVars": true
+    },
+    {
+      "title": "Service Detail",
+      "type": "link",
+      "icon": "dashboard",
+      "url": "/d/cyto-service-detail/service-detail",
+      "keepTime": true,
+      "includeVars": true
+    },
+    {
+      "title": "Backup Operations",
+      "type": "link",
+      "icon": "dashboard",
+      "url": "/d/cyto-backups/backup-operations",
+      "keepTime": true
+    },
+    {
+      "title": "Errors & Incidents",
+      "type": "link",
+      "icon": "dashboard",
+      "url": "/d/cyto-errors/errors-incidents",
+      "keepTime": true
+    }
+  ],
+  "panels": [
+    {
+      "type": "stat",
+      "id": 1,
+      "title": "True incidents",
+      "description": "log.kind=error / exception / severity ERROR+ only.",
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 0,
+        "y": 0
+      },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "serenedb"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 1
+              },
+              {
+                "color": "orange",
+                "value": 10
+              },
+              {
+                "color": "red",
+                "value": 50
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "serenedb"
+          },
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT count(*) FROM otel_logs\nWHERE $__timeFilter(\"timestamp\")\n  AND resource_attributes->>'host.name' IN (${host:sqlstring})\n  AND coalesce(resource_attributes->>'service.name', service_name) IN (${service:sqlstring})\n  AND (\n    log_attributes->>'log.kind' = 'error'\n    OR log_attributes->>'exception.type' IS NOT NULL\n    OR upper(coalesce(severity_text, '')) IN ('ERROR', 'FATAL', 'CRITICAL')\n    OR severity_number >= 17\n  )\n  AND NOT (\n    log_attributes->>'backup.status' = 'success'\n    OR log_attributes->>'event.name' = 'backup.success'\n    OR log_attributes->>'event.name' = 'otel-backup-event'\n  )"
+        }
+      ]
+    },
+    {
+      "type": "stat",
+      "id": 2,
+      "title": "Services affected",
+      "description": "",
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 4,
+        "y": 0
+      },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "serenedb"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "blue",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "serenedb"
+          },
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT count(DISTINCT coalesce(resource_attributes->>'service.name', service_name))\nFROM otel_logs\nWHERE $__timeFilter(\"timestamp\")\n  AND resource_attributes->>'host.name' IN (${host:sqlstring})\n  AND coalesce(resource_attributes->>'service.name', service_name) IN (${service:sqlstring})\n  AND (\n    log_attributes->>'log.kind' = 'error'\n    OR log_attributes->>'exception.type' IS NOT NULL\n    OR upper(coalesce(severity_text, '')) IN ('ERROR', 'FATAL', 'CRITICAL')\n    OR severity_number >= 17\n  )\n  AND NOT (\n    log_attributes->>'backup.status' = 'success'\n    OR log_attributes->>'event.name' = 'backup.success'\n    OR log_attributes->>'event.name' = 'otel-backup-event'\n  )"
+        }
+      ]
+    },
+    {
+      "type": "stat",
+      "id": 3,
+      "title": "Hosts affected",
+      "description": "",
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 8,
+        "y": 0
+      },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "serenedb"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "blue",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "serenedb"
+          },
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT count(DISTINCT resource_attributes->>'host.name')\nFROM otel_logs\nWHERE $__timeFilter(\"timestamp\")\n  AND resource_attributes->>'host.name' IN (${host:sqlstring})\n  AND coalesce(resource_attributes->>'service.name', service_name) IN (${service:sqlstring})\n  AND (\n    log_attributes->>'log.kind' = 'error'\n    OR log_attributes->>'exception.type' IS NOT NULL\n    OR upper(coalesce(severity_text, '')) IN ('ERROR', 'FATAL', 'CRITICAL')\n    OR severity_number >= 17\n  )\n  AND NOT (\n    log_attributes->>'backup.status' = 'success'\n    OR log_attributes->>'event.name' = 'backup.success'\n    OR log_attributes->>'event.name' = 'otel-backup-event'\n  )"
+        }
+      ]
+    },
+    {
+      "type": "stat",
+      "id": 4,
+      "title": "Minutes since last",
+      "description": "",
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 12,
+        "y": 0
+      },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "serenedb"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "blue",
+                "value": null
+              }
+            ]
+          },
+          "unit": "m"
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "serenedb"
+          },
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT CASE WHEN max(\"timestamp\") IS NULL THEN NULL\n  ELSE (extract(epoch from now())*1e9 - epoch_ns(max(\"timestamp\"))) / 6e10 END\nFROM otel_logs\nWHERE $__timeFilter(\"timestamp\")\n  AND resource_attributes->>'host.name' IN (${host:sqlstring})\n  AND coalesce(resource_attributes->>'service.name', service_name) IN (${service:sqlstring})\n  AND (\n    log_attributes->>'log.kind' = 'error'\n    OR log_attributes->>'exception.type' IS NOT NULL\n    OR upper(coalesce(severity_text, '')) IN ('ERROR', 'FATAL', 'CRITICAL')\n    OR severity_number >= 17\n  )\n  AND NOT (\n    log_attributes->>'backup.status' = 'success'\n    OR log_attributes->>'event.name' = 'backup.success'\n    OR log_attributes->>'event.name' = 'otel-backup-event'\n  )"
+        }
+      ]
+    },
+    {
+      "type": "stat",
+      "id": 5,
+      "title": "With trace_id",
+      "description": "",
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 16,
+        "y": 0
+      },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "serenedb"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "blue",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "serenedb"
+          },
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT count(*) FILTER (WHERE coalesce(trace_id,'') <> '' AND trace_id <> '00000000000000000000000000000000')\nFROM otel_logs\nWHERE $__timeFilter(\"timestamp\")\n  AND resource_attributes->>'host.name' IN (${host:sqlstring})\n  AND coalesce(resource_attributes->>'service.name', service_name) IN (${service:sqlstring})\n  AND (\n    log_attributes->>'log.kind' = 'error'\n    OR log_attributes->>'exception.type' IS NOT NULL\n    OR upper(coalesce(severity_text, '')) IN ('ERROR', 'FATAL', 'CRITICAL')\n    OR severity_number >= 17\n  )\n  AND NOT (\n    log_attributes->>'backup.status' = 'success'\n    OR log_attributes->>'event.name' = 'backup.success'\n    OR log_attributes->>'event.name' = 'otel-backup-event'\n  )"
+        }
+      ]
+    },
+    {
+      "type": "stat",
+      "id": 6,
+      "title": "Unique signatures",
+      "description": "",
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 20,
+        "y": 0
+      },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "serenedb"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "blue",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "serenedb"
+          },
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT count(DISTINCT left(regexp_replace(body, '\\\\s+', ' ', 'g'), 120))\nFROM otel_logs\nWHERE $__timeFilter(\"timestamp\")\n  AND resource_attributes->>'host.name' IN (${host:sqlstring})\n  AND coalesce(resource_attributes->>'service.name', service_name) IN (${service:sqlstring})\n  AND (\n    log_attributes->>'log.kind' = 'error'\n    OR log_attributes->>'exception.type' IS NOT NULL\n    OR upper(coalesce(severity_text, '')) IN ('ERROR', 'FATAL', 'CRITICAL')\n    OR severity_number >= 17\n  )\n  AND NOT (\n    log_attributes->>'backup.status' = 'success'\n    OR log_attributes->>'event.name' = 'backup.success'\n    OR log_attributes->>'event.name' = 'otel-backup-event'\n  )"
+        }
+      ]
+    },
+    {
+      "type": "table",
+      "id": 10,
+      "title": "Incidents by service",
+      "description": "",
+      "gridPos": {
+        "h": 9,
+        "w": 24,
+        "x": 0,
+        "y": 4
+      },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "serenedb"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "filterable": true
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "showHeader": true,
+        "footer": {
+          "show": false
+        },
+        "cellHeight": "sm"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "serenedb"
+          },
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT coalesce(resource_attributes->>'service.name', service_name) AS service,\n       resource_attributes->>'host.name' AS host,\n       count(*) AS incidents,\n       max(\"timestamp\") AS last_seen,\n       left(max(body), 240) AS sample\nFROM otel_logs\nWHERE $__timeFilter(\"timestamp\")\n  AND resource_attributes->>'host.name' IN (${host:sqlstring})\n  AND coalesce(resource_attributes->>'service.name', service_name) IN (${service:sqlstring})\n  AND (\n    log_attributes->>'log.kind' = 'error'\n    OR log_attributes->>'exception.type' IS NOT NULL\n    OR upper(coalesce(severity_text, '')) IN ('ERROR', 'FATAL', 'CRITICAL')\n    OR severity_number >= 17\n  )\n  AND NOT (\n    log_attributes->>'backup.status' = 'success'\n    OR log_attributes->>'event.name' = 'backup.success'\n    OR log_attributes->>'event.name' = 'otel-backup-event'\n  )\nGROUP BY 1, 2 ORDER BY incidents DESC LIMIT 80"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "id": 20,
+      "title": "Incident rate by service",
+      "description": "",
+      "gridPos": {
+        "h": 9,
+        "w": 24,
+        "x": 0,
+        "y": 13
+      },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "serenedb"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "drawStyle": "bars",
+            "lineWidth": 2,
+            "fillOpacity": 45,
+            "showPoints": "never",
+            "spanNulls": true,
+            "stacking": {
+              "mode": "normal"
+            }
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "serenedb"
+          },
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "SELECT $__timeGroupAlias(\"timestamp\", $__interval),\n       coalesce(resource_attributes->>'service.name', service_name) AS metric,\n       count(*) AS value\nFROM otel_logs\nWHERE $__timeFilter(\"timestamp\")\n  AND resource_attributes->>'host.name' IN (${host:sqlstring})\n  AND coalesce(resource_attributes->>'service.name', service_name) IN (${service:sqlstring})\n  AND (\n    log_attributes->>'log.kind' = 'error'\n    OR log_attributes->>'exception.type' IS NOT NULL\n    OR upper(coalesce(severity_text, '')) IN ('ERROR', 'FATAL', 'CRITICAL')\n    OR severity_number >= 17\n  )\n  AND NOT (\n    log_attributes->>'backup.status' = 'success'\n    OR log_attributes->>'event.name' = 'backup.success'\n    OR log_attributes->>'event.name' = 'otel-backup-event'\n  )\nGROUP BY 1, 2 ORDER BY 1"
+        }
+      ]
+    },
+    {
+      "type": "table",
+      "id": 30,
+      "title": "Incident detail stream",
+      "description": "",
+      "gridPos": {
+        "h": 14,
+        "w": 24,
+        "x": 0,
+        "y": 22
+      },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "serenedb"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "filterable": true
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "body"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 760
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "auto",
+                  "wrapText": true
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "footer": {
+          "show": false
+        },
+        "cellHeight": "sm"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "serenedb"
+          },
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT \"timestamp\",\n       resource_attributes->>'host.name' AS host,\n       coalesce(resource_attributes->>'service.name', service_name) AS service,\n       coalesce(severity_text, log_attributes->>'severity', '') AS severity,\n       coalesce(log_attributes->>'log.kind', '') AS log_kind,\n       coalesce(trace_id, '') AS trace_id,\n       left(body, 5000) AS body\nFROM otel_logs\nWHERE $__timeFilter(\"timestamp\")\n  AND resource_attributes->>'host.name' IN (${host:sqlstring})\n  AND coalesce(resource_attributes->>'service.name', service_name) IN (${service:sqlstring})\n  AND (\n    log_attributes->>'log.kind' = 'error'\n    OR log_attributes->>'exception.type' IS NOT NULL\n    OR upper(coalesce(severity_text, '')) IN ('ERROR', 'FATAL', 'CRITICAL')\n    OR severity_number >= 17\n  )\n  AND NOT (\n    log_attributes->>'backup.status' = 'success'\n    OR log_attributes->>'event.name' = 'backup.success'\n    OR log_attributes->>'event.name' = 'otel-backup-event'\n  )\nORDER BY \"timestamp\" DESC LIMIT 250"
+        }
+      ]
+    }
+  ],
+  "refresh": "30s",
+  "schemaVersion": 39,
+  "tags": [
+    "cytosorbents",
+    "enterprise",
+    "observability",
+    "errors",
+    "incidents",
+    "sre"
+  ],
+  "templating": {
+    "list": [
+      {
+        "current": {
+          "selected": true,
+          "text": "All",
+          "value": "$__all"
+        },
+        "datasource": {
+          "type": "grafana-postgresql-datasource",
+          "uid": "serenedb"
+        },
+        "definition": "SELECT DISTINCT resource_attributes->>'host.name' AS __text, resource_attributes->>'host.name' AS __value FROM otel_metrics_gauge WHERE resource_attributes->>'host.name' IS NOT NULL ORDER BY 1",
+        "includeAll": true,
+        "label": "Host",
+        "multi": true,
+        "name": "host",
+        "query": "SELECT DISTINCT resource_attributes->>'host.name' AS __text, resource_attributes->>'host.name' AS __value FROM otel_metrics_gauge WHERE resource_attributes->>'host.name' IS NOT NULL ORDER BY 1",
+        "refresh": 2,
+        "type": "query",
+        "sort": 1
+      },
+      {
+        "current": {
+          "selected": true,
+          "text": "All",
+          "value": "$__all"
+        },
+        "datasource": {
+          "type": "grafana-postgresql-datasource",
+          "uid": "serenedb"
+        },
+        "definition": "SELECT DISTINCT coalesce(resource_attributes->>'service.name', service_name) AS __text, coalesce(resource_attributes->>'service.name', service_name) AS __value FROM otel_logs WHERE coalesce(resource_attributes->>'service.name', service_name) IS NOT NULL AND (TRUE) ORDER BY 1",
+        "includeAll": true,
+        "label": "Service",
+        "multi": true,
+        "name": "service",
+        "query": "SELECT DISTINCT coalesce(resource_attributes->>'service.name', service_name) AS __text, coalesce(resource_attributes->>'service.name', service_name) AS __value FROM otel_logs WHERE coalesce(resource_attributes->>'service.name', service_name) IS NOT NULL AND (TRUE) ORDER BY 1",
+        "refresh": 2,
+        "type": "query",
+        "sort": 1
+      }
+    ]
+  },
+  "time": {
+    "from": "now-12h",
+    "to": "now"
+  },
+  "timepicker": {},
+  "timezone": "browser",
+  "title": "Errors & Incidents",
+  "uid": "cyto-errors",
+  "version": 3
+}
