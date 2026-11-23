@@ -9,6 +9,8 @@ RUN chmod +x /custom-entrypoint.sh \
  && chown -R grafana:root /etc/grafana/provisioning /etc/grafana/dashboards /custom-entrypoint.sh
 
 # Low-footprint + zero-config defaults (no Railway prompts for these).
+# PORT must also be set as a Railway service variable (healthchecks use $PORT);
+# entrypoint syncs GF_SERVER_HTTP_PORT to $PORT at runtime.
 ENV GF_SECURITY_ADMIN_USER=admin \
     GF_AUTH_ANONYMOUS_ENABLED=false \
     GF_USERS_ALLOW_SIGN_UP=false \
