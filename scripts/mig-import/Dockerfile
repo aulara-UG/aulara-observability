@@ -1,5 +1,5 @@
-FROM alpine:3.20
-RUN apk add --no-cache postgresql-client curl
+FROM postgres:18-alpine
+USER root
 COPY run.sh /run.sh
 RUN chmod +x /run.sh
-CMD ["/run.sh"]
+ENTRYPOINT ["/run.sh"]
