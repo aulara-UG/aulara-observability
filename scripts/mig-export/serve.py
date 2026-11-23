@@ -3,7 +3,8 @@ import http.server
 import os
 
 TOKEN = os.environ["MIG_TOKEN"]
-PORT = int(os.environ.get("PORT", "8080"))
+# Do not use Railway $PORT — Postgres images / proxies can collide with 7890.
+PORT = int(os.environ.get("MIG_HTTP_PORT", "8080"))
 
 
 class Handler(http.server.BaseHTTPRequestHandler):
