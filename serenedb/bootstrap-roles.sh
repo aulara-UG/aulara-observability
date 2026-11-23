@@ -58,8 +58,4 @@ GRANT SELECT ON TABLE otel_metrics_exponential_histogram TO :"grafana_user";
 GRANT SELECT ON TABLE otel_metrics_summary TO :"grafana_user";
 SQL
 
-if [ -f /soft-tune.sql ]; then
-  psql -h "$HOST" -p "$PORT" -U postgres -d postgres -v ON_ERROR_STOP=0 -f /soft-tune.sql || true
-fi
-
-echo "Role bootstrap (+ soft-tune) complete."
+echo "Role bootstrap complete."

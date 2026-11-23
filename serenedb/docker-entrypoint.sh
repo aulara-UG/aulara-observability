@@ -20,7 +20,7 @@ cleanup() {
 }
 trap cleanup INT TERM
 
-# Bootstrap roles + soft memory once the wire protocol is up (best-effort).
+# Bootstrap DB roles once the wire protocol is up (best-effort).
 (
   sleep 2
   if [ -n "${POSTGRES_PASSWORD:-}" ] && [ -n "${OTEL_INGEST_PASSWORD:-}" ] && [ -n "${GRAFANA_DB_PASSWORD:-}" ]; then

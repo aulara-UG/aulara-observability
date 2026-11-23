@@ -1,6 +1,6 @@
 extensions:
   health_check:
-    endpoint: 0.0.0.0:13133
+    endpoint: 0.0.0.0:${env:PORT:-13133}
   # Inbound multi-tenant auth: one Basic Auth username per customer.
   basicauth/server:
     htpasswd:

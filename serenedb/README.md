@@ -19,30 +19,15 @@ Railway volumes are root-owned; the image runs as `USER root` so lockfiles can b
 
 ## Roles
 
-Created by the one-shot `role-bootstrap` service:
+Created automatically by `bootstrap-roles.sh` on SereneDB startup (when passwords are set):
 
 - `otel_ingest` — OTLP Basic Auth + DML on `otel_*`
 - `grafana_ro` — `SELECT` on `otel_*`
 
 Superuser password is seeded once via `POSTGRES_PASSWORD` at first data-dir init.
 
-## Soft memory tuning (no Railway hard RAM cap)
+## Sizing
 
-SereneDB defaults to a large thread pool and `memory_limit ≈ 80%` of visible RAM, so it happily grows on Railway. Prefer **engine soft limits**:
+Process thread defaults: `--cpu_threads=2`, `--io_threads=2` (override with `SERENEDB_CPU_THREADS` / `SERENEDB_IO_THREADS`).
 
-| Knob | Default here | Effect |
-|------|--------------|--------|
-| `--cpu_threads` / `--io_threads` | `2` / `2` | Lower write peaks (`≈ segment_memory_max × threads`) |
-| `SET memory_limit` | `768MB` | Engine bounds itself (spill/limit), process stays up |
-| `SET GLOBAL threads` | `2` | Query/write parallelism |
-| `segment_memory_max` (table) | still `256MB` on existing `otel_*` | Fixed at `CREATE TABLE`; recreate to lower |
-
-Override at deploy: `SERENEDB_CPU_THREADS`, `SERENEDB_IO_THREADS`.
-
-Apply SQL soft settings after deploy:
-
-```bash
-railway up ./serenedb/soft-tune --path-as-root --service role-bootstrap -m "serenedb soft memory tune"
-```
-
-(or a dedicated one-shot service). Pass `POSTGRES_PASSWORD` from SereneDB.
+SereneDB’s own `memory_limit` (~80% of visible RAM) is **not** overridden — tune via SQL yourself if you want a smaller Railway footprint.

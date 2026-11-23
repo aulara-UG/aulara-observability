@@ -1,6 +1,6 @@
 # Deploy and Host Grafana OpenTelemetry Stack by Aulara on Railway
 
-**Aulara**’s **Grafana OpenTelemetry** stack: **OpenTelemetry Collector** + **SereneDB** + **Grafana** — a lightweight **LGTM**-style alternative (without Loki/Tempo/Mimir).
+**Aulara**’s **Grafana OpenTelemetry** stack: **OpenTelemetry Collector** + **SereneDB** + **Grafana** — a lightweight **LGTM**-style alternative (without Loki/Tempo/Mimir). Deploy once; secrets and private networking are auto-wired.
 
 Built by [Aulara](https://aulara.de).
 
@@ -10,22 +10,15 @@ Apps / agents  --OTLP-->  otel-collector  --OTLP/HTTP-->  serenedb  <--SQL--  gr
 
 ## About Hosting Grafana OpenTelemetry Stack by Aulara
 
+Hosting this stack means running three services on Railway: **SereneDB** (volume-backed OTLP ingest + PostgreSQL-wire SQL), an **OpenTelemetry Collector** gateway with Basic Auth multi-tenancy, and **Grafana** for Explore and dashboards. Traffic between services uses Railway private networking. Public HTTPS domains are optional for Grafana and OTLP ingest. Passwords and a demo tenant are generated at deploy time; SereneDB engine memory is left at upstream defaults so you size the Railway service yourself.
+
 | Service | Role |
 |---------|------|
 | **serenedb** | OTLP ingest + PostgreSQL-wire SQL store (volume-backed) |
 | **otel-collector** | OpenTelemetry Collector / OTLP gateway, Basic Auth multi-tenancy |
 | **grafana** | Grafana Explore & dashboards |
-| **serenedb-soft-tune** | Optional soft memory tune for SereneDB |
 
 Source: [github.com/aulara-UG/aulara-observability](https://github.com/aulara-UG/aulara-observability)
-
-## Why Deploy Grafana OpenTelemetry Stack by Aulara
-
-- **Grafana** + **OpenTelemetry** metrics, logs, and traces in one Railway deploy
-- LGTM-like observability without operating Loki / Tempo / Mimir
-- Multi-tenant OTLP via `OTEL_TENANTS` → `tenant.id`
-- SQL over Postgres wire for Grafana and tooling
-- Soft SereneDB memory defaults for lower Railway cost
 
 ## Common Use Cases
 
@@ -46,5 +39,10 @@ Source: [github.com/aulara-UG/aulara-observability](https://github.com/aulara-UG
 - SereneDB volume `/var/lib/serenedb`, Grafana volume `/var/lib/grafana`
 - Private networking between collector, SereneDB, and Grafana
 - **Auto-wired:** Grafana/collector connect to SereneDB via `${{serenedb.*}}`; Grafana URL via `${{RAILWAY_PUBLIC_DOMAIN}}`
-- **You set once at deploy:** SereneDB passwords (`POSTGRES_PASSWORD`, ingest/Grafana DB roles), Grafana admin password, and `OTEL_TENANTS` (`user:password` pairs)
-- Grafana footprint knobs are baked into the image — not prompted at deploy
+- **Secrets:** passwords and a demo `OTEL_TENANTS` entry are generated with `${{secret()}}` at deploy
+- Grafana footprint knobs and static usernames/ports are baked into the images
+- SereneDB engine memory is left at SereneDB defaults; size the Railway service (and optional SQL `memory_limit`) yourself
+
+### Why Deploy Grafana OpenTelemetry Stack by Aulara on Railway?
+
+Railway is a singular platform to deploy your infrastructure stack. Railway will host your infrastructure so you don't have to deal with configuration, while allowing you to vertically and horizontally scale it. By deploying Grafana OpenTelemetry Stack by Aulara on Railway, you are one step closer to supporting a complete full-stack application with minimal burden. Host your servers, databases, AI agents, and more on Railway.

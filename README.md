@@ -15,13 +15,12 @@ Apps / agents  --OTLP-->  otel-collector  --OTLP/HTTP-->  serenedb  <--SQL--  gr
 | `serenedb` | [`./serenedb`](./serenedb) | OTLP + PostgreSQL-wire store (volume) |
 | `otel-collector` | [`./otel-collector`](./otel-collector) | OTLP gateway, Basic Auth multi-tenancy |
 | `grafana` | [`./grafana`](./grafana) | Dashboards & Explore |
-| `serenedb-soft-tune` | [`./serenedb/soft-tune`](./serenedb/soft-tune) | Optional one-shot soft memory tune |
 
 ## Deploy
 
 [![Deploy on Railway](https://railway.com/button.svg)](https://railway.com/deploy/grafana-opentelemetry-stack-by-aulara)
 
-Marketplace: **Grafana OpenTelemetry Stack by Aulara**. Secrets and cross-service wiring are auto-filled (`${{secret()}}`, `${{serenedb.*}}`). You usually only edit `OTEL_TENANTS`.
+Marketplace: **Grafana OpenTelemetry Stack by Aulara**. One-click deploy — secrets and cross-service wiring are auto-filled (`${{secret()}}`, `${{serenedb.*}}`). Edit `OTEL_TENANTS` only when you need more tenants.
 
 Or deploy from this repo:
 
@@ -29,7 +28,6 @@ Or deploy from this repo:
 railway up ./serenedb --path-as-root --service serenedb
 railway up ./otel-collector --path-as-root --service otel-collector
 railway up ./grafana --path-as-root --service grafana
-# optional: re-apply zero-config vars after linking
 ./scripts/apply-template-vars.sh
 ```
 
@@ -45,7 +43,7 @@ OTEL_EXPORTER_OTLP_HEADERS=Authorization=Basic%20$(printf '%s' 'tenant:password'
 
 ### Public collector URL
 
-Use the generated HTTPS domain on `otel-collector` with the same Basic Auth header.
+Use the generated HTTPS domain on `otel-collector` (OTLP/HTTP on port 4318) with the same Basic Auth header.
 
 ### Multi-tenancy
 
@@ -57,13 +55,9 @@ OTEL_TENANTS=demo:xxxx,acme:secret
 
 Authenticated username is stamped as `resource.attributes["tenant.id"]`.
 
-## Soft memory (SereneDB)
+## SereneDB sizing
 
-Defaults: `--cpu_threads=2`, `--io_threads=2`. Optional SQL soft-tune sets `memory_limit≈768MB` (engine soft budget, not a hard OOM kill).
-
-```bash
-railway up ./serenedb/soft-tune --path-as-root --service serenedb-soft-tune
-```
+Process defaults: `--cpu_threads=2`, `--io_threads=2` (override with `SERENEDB_CPU_THREADS` / `SERENEDB_IO_THREADS` on the service if needed). Engine memory (`memory_limit` and related SQL settings) is left to SereneDB defaults — tune yourself if you need a smaller Railway footprint.
 
 ## License
 
